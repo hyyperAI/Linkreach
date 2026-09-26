@@ -2,7 +2,7 @@
 
 Suggested build order — each phase should be shippable and tested on its own
 before starting the next, same discipline as
-`docs/linkedin-profile-ui-plan/06-implementation-phases.md` used for the
+`../linkedin-profile-ui-plan/06-implementation-phases.md` used for the
 LinkedIn Account page.
 
 ## Phase 1 — Heartbeat foundation (no UI yet)

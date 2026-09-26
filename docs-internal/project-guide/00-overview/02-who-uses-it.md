@@ -2,7 +2,7 @@
 
 > **Purpose:** Describe intended users and the decisions the interface must support.
 > **Read this before:** Changing dashboard information architecture, copy, or workflow.
-> **Source files:** `linkreach/dashboard/templates/dashboard/`, `docs/linkedin-profile-ui-plan/01-user-perspective.md`
+> **Source files:** `linkreach/dashboard/templates/dashboard/`, `../../linkedin-profile-ui-plan/01-user-perspective.md`
 
 ## Primary user: outreach operator
 
