@@ -1,0 +1,50 @@
+name: Tests
+
+on:
+  push:
+    branches: [main]
+  pull_request:
+
+jobs:
+  windows-release:
+    runs-on: windows-latest
+    env:
+      DJANGO_SECRET_KEY: ci-only-release-check-secret
+      LINKREACH_LOCAL_RELEASE: "1"
+      LINKREACH_DEBUG: "0"
+    steps:
+      - uses: actions/checkout@v4
+
+      - uses: actions/setup-python@v5
+        with:
+          python-version: "3.13"
+          cache: pip
+
+      - name: Install dependencies
+        run: python -m pip install -r requirements/windows-lock.txt
+
+      - name: Install project-local Chromium
+        env:
+          PLAYWRIGHT_BROWSERS_PATH: .browsers
+        run: python -m playwright install chromium
+
+      - name: Validate dependencies
+        run: python -m pip check
+
+      - name: Check migrations
+        run: python manage.py makemigrations --check --dry-run
+
+      - name: Run Django deployment checks
+        run: python manage.py check --deploy
+
+      - name: Run Windows release suite
+        run: python -m pytest --cov=linkreach --cov-config=.coveragerc --cov-report=term-missing
+
+  docker-reference:
+    runs-on: ubuntu-latest
+    continue-on-error: true
+    steps:
+      - uses: actions/checkout@v4
+
+      - name: Run reference Docker tests
+        run: HOST_UID=$(id -u) HOST_GID=$(id -g) make docker-test

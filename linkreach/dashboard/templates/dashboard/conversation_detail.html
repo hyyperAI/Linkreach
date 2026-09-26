@@ -1,0 +1,205 @@
+{% extends "dashboard/base.html" %}
+{% block title %}{{ name }} · Conversation · LinkedFlow{% endblock %}
+{% block workspace_actions %}
+<div class="flex flex-wrap items-center justify-end gap-2">
+  {% if lead.linkedin_url %}
+    <a href="{{ lead.linkedin_url }}" target="_blank" rel="noopener" class="oo-button oo-button-secondary">
+      <i data-lucide="external-link" class="oo-icon"></i> Open LinkedIn
+    </a>
+    <button type="button" class="oo-button oo-button-secondary" onclick="navigator.clipboard.writeText('{{ lead.linkedin_url|escapejs }}')">
+      <i data-lucide="copy" class="oo-icon"></i> Copy URL
+    </button>
+  {% endif %}
+  {% if deal.campaign_id %}
+    <a href="{% url 'dashboard:campaign_detail' deal.campaign_id %}" class="oo-button oo-button-primary">
+      <i data-lucide="megaphone" class="oo-icon"></i> View Campaign
+    </a>
+  {% endif %}
+</div>
+{% endblock %}
+{% block content %}
+<div class="grid grid-cols-1 gap-5 xl:grid-cols-[minmax(0,1fr)_22rem]">
+  <section class="oo-surface overflow-hidden">
+    <div class="border-b border-hair px-5 py-4 sm:px-6">
+      <div class="flex flex-col gap-4 md:flex-row md:items-center md:justify-between">
+        <div class="min-w-0">
+          <div class="flex flex-wrap items-center gap-2">
+            <span class="oo-chip">{{ deal.get_state_display }}</span>
+            <span class="oo-chip {% if deal.reply_mode == 'manual' %}bg-zinc-100 text-ink{% else %}text-muted{% endif %}">
+              {% if deal.reply_mode == 'manual' %}Manual{% else %}AI Auto{% endif %}
+            </span>
+            {% if manual_task.state %}
+              <span class="oo-chip {% if manual_task.state == 'failed' %}border-red-200 bg-red-50 text-red-700{% elif manual_task.state == 'sent' %}border-emerald-200 bg-emerald-50 text-emerald-700{% else %}bg-zinc-50{% endif %}">
+                {{ manual_task.label }}
+              </span>
+            {% endif %}
+          </div>
+          <h2 class="mt-3 truncate text-xl font-semibold oo-primary">{{ name }}</h2>
+          <p class="mt-1 text-sm text-muted">{{ lead.public_identifier }} · {{ deal.campaign.name }}</p>
+        </div>
+        <form method="post" action="{% url 'dashboard:conversation_reply_mode' deal.pk %}" class="shrink-0">
+          {% csrf_token %}
+          <div class="inline-flex rounded-lg border border-hair bg-zinc-50 p-1">
+            <button name="reply_mode" value="auto" class="rounded-md px-3 py-1.5 text-sm font-medium transition {% if deal.reply_mode == 'auto' %}bg-card text-ink shadow-sm{% else %}text-muted hover:text-ink{% endif %}">
+              AI Auto
+            </button>
+            <button name="reply_mode" value="manual" class="rounded-md px-3 py-1.5 text-sm font-medium transition {% if deal.reply_mode == 'manual' %}bg-card text-ink shadow-sm{% else %}text-muted hover:text-ink{% endif %}">
+              Manual
+            </button>
+          </div>
+        </form>
+      </div>
+      {% if manual_task.state == 'failed' %}
+        <div class="mt-4 rounded-lg border border-red-200 bg-red-50 px-4 py-3 text-sm text-red-800">
+          Manual send failed{% if manual_task.error %}: {{ manual_task.error }}{% endif %}
+        </div>
+      {% elif manual_task.state == 'queued' %}
+        <div class="mt-4 rounded-lg border border-hair bg-zinc-50 px-4 py-3 text-sm text-muted">
+          Manual reply is queued. {% if bot_status.state != 'running' and bot_status.state != 'starting' %}Start the bot from Monitor to send it.{% endif %}
+        </div>
+      {% elif manual_task.state == 'sending' %}
+        <div class="mt-4 rounded-lg border border-hair bg-zinc-50 px-4 py-3 text-sm text-muted">
+          Sending through the active LinkedIn session.
+        </div>
+      {% endif %}
+    </div>
+
+    <div class="max-h-[64vh] space-y-4 overflow-y-auto bg-paper px-4 py-5 sm:px-6 oo-scrollbar">
+      {% for item in timeline_items %}
+        {% if item.kind == 'event' %}
+          <div class="flex items-center gap-3 py-2 text-center text-[12px] leading-5 text-muted">
+            <div class="h-px min-w-6 flex-1 bg-hair"></div>
+            <div class="max-w-[80%] whitespace-normal break-words">
+              {{ item.label }} · {{ item.event.created_at|date:"M d, H:i" }}
+            </div>
+            <div class="h-px min-w-6 flex-1 bg-hair"></div>
+          </div>
+        {% elif item.kind == 'pending_manual' %}
+          <div class="flex justify-end">
+            <div class="max-w-[88%] sm:max-w-[72%] opacity-80">
+              <div class="mb-1 flex items-center justify-end gap-2 text-[11px] uppercase tracking-[0.14em] text-muted">
+                <span>You</span>
+                <span>Sent manually</span>
+                <span>{{ item.status_label }}</span>
+              </div>
+              <div class="whitespace-pre-wrap break-words rounded-lg border border-dashed border-ink bg-card px-4 py-3 text-sm leading-6 text-ink shadow-sm">
+                {{ item.content }}
+              </div>
+            </div>
+          </div>
+        {% else %}
+        {% with msg=item.message %}
+        <div class="flex {% if msg.is_outgoing %}justify-end{% else %}justify-start{% endif %}">
+          <div class="max-w-[88%] sm:max-w-[72%]">
+            <div class="mb-1 flex items-center gap-2 text-[11px] uppercase tracking-[0.14em] text-muted {% if msg.is_outgoing %}justify-end{% endif %}">
+              {% if msg.is_outgoing %}
+                {% if msg.source == 'ai' %}
+                  <span>AI assistant</span>
+                  <span>Sent by AI</span>
+                {% elif msg.source == 'csv_custom' %}
+                  <span>Campaign opener</span>
+                  <span>Imported message</span>
+                {% elif msg.source == 'manual' %}
+                  <span>You</span>
+                  <span>Sent manually</span>
+                {% else %}
+                  <span>You</span>
+                  <span>Previous outgoing message</span>
+                {% endif %}
+              {% else %}
+                <span>{{ name }}</span>
+              {% endif %}
+              <span>{{ msg.creation_date|date:"M d, H:i" }}</span>
+            </div>
+            <div class="whitespace-pre-wrap break-words rounded-lg border px-4 py-3 text-sm leading-6 shadow-sm {% if msg.is_outgoing %}border-ink bg-ink text-white{% else %}border-hair bg-card text-ink{% endif %}">
+              {{ msg.content|default:"(empty message)" }}
+            </div>
+          </div>
+        </div>
+        {% endwith %}
+        {% endif %}
+      {% empty %}
+        <div class="rounded-lg border border-dashed border-hair bg-card px-5 py-10 text-center text-sm text-muted">
+          No synced LinkedIn messages yet. The bot syncs this thread after sends and during follow-up checks.
+        </div>
+      {% endfor %}
+    </div>
+
+    <div class="border-t border-hair bg-card px-5 py-4 sm:px-6">
+      <form method="post" action="{% url 'dashboard:conversation_send_manual' deal.pk %}" class="space-y-3">
+        {% csrf_token %}
+        <label for="manual-message" class="block text-sm font-medium">Manual reply</label>
+        <textarea id="manual-message" name="message" rows="4" {% if deal.reply_mode != 'manual' %}disabled{% endif %} placeholder="{% if deal.reply_mode == 'manual' %}Write a plain-text LinkedIn reply...{% else %}Switch to Manual mode to write a human reply.{% endif %}">{{ draft }}</textarea>
+        <div class="flex flex-col gap-3 sm:flex-row sm:items-center sm:justify-between">
+          <p class="text-xs text-muted">
+            {% if deal.reply_mode == 'manual' %}
+              This queues a daemon task and sends through the existing LinkedIn browser session.
+            {% else %}
+              AI Auto is on. The composer is disabled so the AI can manage follow-ups.
+            {% endif %}
+          </p>
+          <button class="oo-button oo-button-primary disabled:cursor-not-allowed disabled:opacity-50" {% if deal.reply_mode != 'manual' %}disabled{% endif %}>
+            <i data-lucide="send" class="oo-icon"></i> Send
+          </button>
+        </div>
+      </form>
+    </div>
+  </section>
+
+  <aside class="space-y-5">
+    <section class="oo-surface p-5">
+      <h3 class="text-sm font-semibold oo-primary">Profile</h3>
+      <dl class="mt-4 space-y-3 text-sm">
+        <div class="flex justify-between gap-3"><dt class="text-muted">Campaign</dt><dd class="text-right font-medium">{{ deal.campaign.name }}</dd></div>
+        <div class="flex justify-between gap-3"><dt class="text-muted">State</dt><dd class="text-right font-medium">{{ deal.get_state_display }}</dd></div>
+        <div class="flex justify-between gap-3"><dt class="text-muted">Country</dt><dd class="text-right font-medium">{{ lead.country_code|default:"Unknown"|upper }}</dd></div>
+        <div class="flex justify-between gap-3"><dt class="text-muted">Email</dt><dd class="text-right font-medium">{{ email_status.label }}{% if email %}<br><span class="text-xs text-muted">{{ email }}</span>{% endif %}</dd></div>
+      </dl>
+      {% if keywords.visible %}
+        <div class="mt-5 flex flex-wrap gap-2">
+          {% for keyword in keywords.visible %}
+            <span class="oo-chip">{{ keyword }}</span>
+          {% endfor %}
+          {% if keywords.extra %}<span class="oo-chip text-muted">+{{ keywords.extra }}</span>{% endif %}
+        </div>
+      {% endif %}
+    </section>
+
+    <section class="oo-surface p-5">
+      <h3 class="text-sm font-semibold oo-primary">Imported Information</h3>
+      <div class="mt-4 space-y-2 text-sm">
+        {% for key, value in import_fields.items %}
+          {% if value %}<div class="rounded-lg border border-hair bg-paper px-3 py-2"><span class="text-muted">{{ key|title }}</span><div class="mt-1 break-words font-medium">{{ value }}</div></div>{% endif %}
+        {% empty %}
+          <p class="text-sm text-muted">No imported fields were saved for this lead.</p>
+        {% endfor %}
+        {% for key, value in custom_import_fields.items %}
+          {% if value %}<div class="rounded-lg border border-hair bg-paper px-3 py-2"><span class="text-muted">{{ key }}</span><div class="mt-1 break-words font-medium">{{ value }}</div></div>{% endif %}
+        {% endfor %}
+      </div>
+    </section>
+
+    <section class="oo-surface p-5">
+      <h3 class="text-sm font-semibold oo-primary">Profile Summary</h3>
+      <div class="mt-4 space-y-3 text-sm text-muted">
+        {% for fact in profile_facts %}
+          <p class="rounded-lg border border-hair bg-paper px-3 py-2">{{ fact }}</p>
+        {% empty %}
+          <p>No profile summary has been generated yet.</p>
+        {% endfor %}
+      </div>
+    </section>
+
+    <section class="oo-surface p-5">
+      <h3 class="text-sm font-semibold oo-primary">Conversation Notes</h3>
+      <div class="mt-4 space-y-3 text-sm text-muted">
+        {% for fact in chat_facts %}
+          <p class="rounded-lg border border-hair bg-paper px-3 py-2">{{ fact }}</p>
+        {% empty %}
+          <p>No conversation facts have been extracted yet.</p>
+        {% endfor %}
+      </div>
+    </section>
+  </aside>
+</div>
+{% endblock %}

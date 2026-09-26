@@ -1,0 +1,138 @@
+{% extends "dashboard/base.html" %}
+{% load dashboard_extras %}
+{% block title %}Add Profiles · LinkedFlow{% endblock %}
+{% block content %}
+<form method="post" action="{% url 'dashboard:campaign_import_csv' campaign.pk %}" class="space-y-6">
+  {% csrf_token %}
+  <input type="hidden" name="step" value="import">
+
+  <section class="oo-surface overflow-hidden">
+    <div class="border-b border-hair px-6 py-5">
+      <div class="text-sm text-muted">Step 2 of 3</div>
+      <h2 class="ff-serif mt-1 text-xl font-semibold">Map your CSV fields</h2>
+      <p class="mt-1 text-sm text-muted">Match your CSV columns to profile fields. LinkedIn is required{% if requires_custom_message %}, and every imported row also needs a customized first message{% endif %}.</p>
+    </div>
+
+    <div class="px-6 py-5">
+      <div class="overflow-x-auto oo-scrollbar">
+        <table class="w-full min-w-[560px] text-sm">
+          <thead>
+            <tr class="text-left text-[11px] uppercase tracking-[0.14em] text-muted border-b border-hair">
+              <th class="py-3 pr-4 font-medium">Profile field</th>
+              <th class="py-3 font-medium">CSV column</th>
+            </tr>
+          </thead>
+          <tbody>
+            {% for field, label in core_fields %}
+              <tr class="border-b border-hair/70 last:border-0">
+                <td class="py-3 pr-4 font-medium text-ink">{{ label }}{% if field == 'linkedin' or requires_custom_message and field == 'custom_message' %}<span class="ml-1 text-red-600">*</span>{% endif %}</td>
+                <td class="py-3">
+                  <select name="map_{{ field }}" {% if field == 'linkedin' or requires_custom_message and field == 'custom_message' %}required{% endif %} class="!w-full border border-hair rounded-lg px-3 py-2 text-sm bg-card focus:outline-none focus:border-ink">
+                    <option value="">Select CSV column</option>
+                    {% for header in headers %}
+                      <option value="{{ header }}" {% if mapping|get_item:field == header %}selected{% endif %}>{{ header }}</option>
+                    {% endfor %}
+                  </select>
+                </td>
+              </tr>
+            {% endfor %}
+          </tbody>
+        </table>
+      </div>
+    </div>
+  </section>
+
+  {% if requires_custom_message %}
+  <section class="oo-surface overflow-hidden">
+    <div class="border-b border-hair px-6 py-5">
+      <div class="text-sm text-muted">Message safety check</div>
+      <h2 class="ff-serif mt-1 text-lg font-semibold">Imported openers are sent verbatim</h2>
+      <p class="mt-1 text-sm text-muted">Leading text, links, punctuation, and line breaks are preserved. Messages must be non-empty and no longer than 3,000 characters. You can edit them again on the campaign page before starting outreach.</p>
+    </div>
+    {% with message_column=mapping|get_item:'custom_message' %}
+    <div class="grid gap-3 p-6 lg:grid-cols-2">
+      {% for row in preview_rows %}
+      <div class="rounded-lg border border-hair bg-white p-4">
+        <div class="mb-2 text-[11px] font-medium uppercase tracking-[0.14em] text-muted">Sample {{ forloop.counter }}</div>
+        <div class="whitespace-pre-wrap break-words text-sm leading-6 text-ink">{% if message_column %}{{ row|get_item:message_column|default:'No message found in this row' }}{% else %}Choose the customized message column above to review its content.{% endif %}</div>
+      </div>
+      {% endfor %}
+    </div>
+    {% endwith %}
+  </section>
+  {% endif %}
+
+  <section class="oo-surface p-6">
+    <div class="flex items-start justify-between gap-4">
+      <div>
+        <h2 class="ff-serif text-lg font-semibold">Custom fields</h2>
+        <p class="mt-1 text-sm text-muted">Add extra CSV fields for future personalization variables.</p>
+      </div>
+      <button type="button" onclick="ooAddCustomField()" class="oo-button oo-button-secondary">
+        <i data-lucide="plus" class="oo-icon"></i> Add field
+      </button>
+    </div>
+
+    <div id="oo-custom-fields" class="mt-4 space-y-3"></div>
+
+    <template id="oo-custom-field-template">
+      <div class="grid gap-3 rounded-lg border border-hair bg-paper p-3 sm:grid-cols-2">
+        <input name="custom_name" placeholder="Custom field name" class="border border-hair rounded-lg px-3 py-2 text-sm bg-white focus:outline-none focus:border-ink">
+        <select name="custom_column" class="border border-hair rounded-lg px-3 py-2 text-sm bg-white focus:outline-none focus:border-ink">
+          <option value="">Select CSV column</option>
+          {% for header in headers %}
+            <option value="{{ header }}">{{ header }}</option>
+          {% endfor %}
+        </select>
+      </div>
+    </template>
+  </section>
+
+  <section class="oo-surface overflow-hidden">
+    <div class="border-b border-hair px-6 py-5">
+      <div class="text-sm text-muted">Step 3 of 3</div>
+      <h2 class="ff-serif mt-1 text-xl font-semibold">Review sample rows</h2>
+      <p class="mt-1 text-sm text-muted">Previewing the first rows from your CSV before adding profiles. No outreach begins during import.</p>
+    </div>
+    <div class="overflow-x-auto oo-scrollbar">
+      <table class="w-full min-w-[900px] text-sm">
+        <thead>
+          <tr class="text-left text-[11px] uppercase tracking-[0.14em] text-muted border-b border-hair">
+            {% for header in headers|slice:":8" %}
+              <th class="px-5 py-3 font-medium">{{ header }}</th>
+            {% endfor %}
+          </tr>
+        </thead>
+        <tbody>
+          {% for row in preview_rows %}
+            <tr class="border-b border-hair/70 last:border-0">
+              {% for header in headers|slice:":8" %}
+                <td class="px-5 py-3 text-muted">{{ row|get_item:header|default:"—" }}</td>
+              {% endfor %}
+            </tr>
+          {% endfor %}
+        </tbody>
+      </table>
+    </div>
+  </section>
+
+  <div class="flex flex-wrap items-center gap-3">
+    <button class="oo-button oo-button-primary">
+      <i data-lucide="user-plus" class="oo-icon"></i> Add profiles
+    </button>
+    <a href="{% url 'dashboard:campaign_detail' campaign.pk %}" class="oo-button oo-button-secondary">Cancel</a>
+    <span class="text-sm text-muted">{{ rows|length }} rows ready for import.</span>
+  </div>
+</form>
+{% endblock %}
+
+{% block scripts %}
+<script>
+  function ooAddCustomField() {
+    const template = document.getElementById('oo-custom-field-template');
+    const target = document.getElementById('oo-custom-fields');
+    target.appendChild(template.content.cloneNode(true));
+    ooRefreshIcons();
+  }
+</script>
+{% endblock %}

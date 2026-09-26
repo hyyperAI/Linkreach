@@ -1,0 +1,195 @@
+<div id="oo-modal-content" class="flex min-h-full flex-col">
+  <div class="sticky top-0 z-10 border-b border-hair bg-card px-6 py-5">
+    <div class="flex items-start justify-between gap-4">
+      <div class="flex min-w-0 items-start gap-3">
+        <div class="grid h-11 w-11 shrink-0 place-items-center rounded-lg bg-ink text-sm font-semibold text-white">
+          {{ name|default:deal.lead.public_identifier|first|upper }}
+        </div>
+        <div class="min-w-0">
+          <h3 class="ff-serif truncate text-xl font-semibold">{{ name|default:deal.lead.public_identifier }}</h3>
+          <p class="mt-1 truncate text-sm text-muted">@{{ deal.lead.public_identifier|default:"unknown" }}</p>
+        </div>
+      </div>
+      {% if is_drawer %}
+        <button onclick="ooCloseModal()" class="inline-flex h-8 w-8 shrink-0 items-center justify-center rounded-full text-muted transition hover:bg-paper hover:text-ink" title="Close details">
+          <i data-lucide="x" class="oo-icon"></i>
+        </button>
+      {% endif %}
+    </div>
+
+    <div class="mt-4 flex flex-wrap gap-2">
+      {% if deal.lead.linkedin_url %}
+        <a href="{{ deal.lead.linkedin_url }}" target="_blank" rel="noopener" class="oo-button oo-button-primary !min-h-9 !px-3">
+          <span class="text-xs font-semibold">in</span> Open LinkedIn
+        </a>
+        <button type="button" onclick="navigator.clipboard.writeText('{{ deal.lead.linkedin_url|escapejs }}')" class="oo-button oo-button-secondary !min-h-9 !px-3" title="Copy LinkedIn URL">
+          <i data-lucide="copy" class="oo-icon"></i> Copy URL
+        </button>
+      {% endif %}
+      <a href="{% url 'dashboard:campaign_detail' deal.campaign.pk %}" class="oo-button oo-button-secondary !min-h-9 !px-3">
+        <i data-lucide="megaphone" class="oo-icon"></i> View campaign
+      </a>
+    </div>
+  </div>
+
+  <div class="space-y-4 px-6 py-5">
+    <section class="rounded-lg border border-hair bg-white p-4">
+      <div class="mb-3 text-[11px] font-medium uppercase tracking-[0.15em] text-muted">Contact</div>
+      <div class="flex items-center justify-between gap-3">
+        <div>
+          <div class="flex items-center gap-2 text-sm font-medium text-ink">
+            <i data-lucide="mail" class="oo-icon"></i>
+            {{ email_status.label }}
+          </div>
+          <div class="mt-1 text-sm text-muted">{{ email|default:"No email available" }}</div>
+        </div>
+        {% if email %}
+          <button type="button" onclick="navigator.clipboard.writeText('{{ email|escapejs }}')" class="inline-flex h-8 w-8 items-center justify-center rounded-full border border-hair text-muted transition hover:bg-paper hover:text-ink" title="Copy email">
+            <i data-lucide="copy" class="oo-icon"></i>
+          </button>
+        {% endif %}
+      </div>
+    </section>
+
+    <section class="rounded-lg border border-hair bg-paper p-4">
+      <div class="mb-3 text-[11px] font-medium uppercase tracking-[0.15em] text-muted">Outreach context</div>
+      <div class="grid gap-3 text-sm">
+        <div class="flex items-center justify-between gap-4">
+          <span class="text-muted">Campaign</span>
+          <a href="{% url 'dashboard:campaign_detail' deal.campaign.pk %}" class="max-w-[260px] truncate font-medium text-ink hover:underline">{{ deal.campaign.name }}</a>
+        </div>
+        <div class="flex items-center justify-between gap-4">
+          <span class="text-muted">State</span>
+          <span class="inline-flex items-center rounded-md border px-2.5 py-1 text-xs font-medium
+            {% if state_tone == 'action' %}border-zinc-300 bg-zinc-100 text-zinc-900
+            {% elif state_tone == 'waiting' %}border-zinc-200 bg-white text-zinc-700
+            {% elif state_tone == 'good' %}border-emerald-200 bg-emerald-50 text-emerald-700
+            {% elif state_tone == 'danger' %}border-red-200 bg-red-50 text-red-700
+            {% else %}border-hair bg-white text-muted{% endif %}">
+            {{ deal.get_state_display }}
+          </span>
+        </div>
+        <div class="flex items-center justify-between gap-4">
+          <span class="text-muted">Country</span>
+          <span class="font-medium uppercase text-ink">{{ deal.lead.country_code|default:"Unknown" }}</span>
+        </div>
+        {% if deal.outcome %}
+          <div class="flex items-center justify-between gap-4">
+            <span class="text-muted">Outcome</span>
+            <span class="font-medium text-ink">{{ deal.get_outcome_display }}</span>
+          </div>
+        {% endif %}
+        {% if deal.connect_attempts %}
+          <div class="flex items-center justify-between gap-4">
+            <span class="text-muted">Connect attempts</span>
+            <span class="font-medium text-ink">{{ deal.connect_attempts }}</span>
+          </div>
+        {% endif %}
+      </div>
+    </section>
+
+    <section class="rounded-lg border border-hair bg-white p-4">
+      <div class="mb-3 text-[11px] font-medium uppercase tracking-[0.15em] text-muted">Keywords</div>
+      <div class="flex flex-wrap gap-1.5">
+        {% for keyword in keywords.visible %}
+          <span class="rounded-md border border-hair bg-paper px-2 py-1 text-xs text-ink">{{ keyword }}</span>
+        {% empty %}
+          <span class="text-sm text-muted">No keywords available yet.</span>
+        {% endfor %}
+        {% if keywords.extra %}
+          <span class="rounded-md border border-hair bg-white px-2 py-1 text-xs text-muted" title="{{ keywords.all|join:', ' }}">+{{ keywords.extra }}</span>
+        {% endif %}
+      </div>
+    </section>
+
+    {% if import_fields or custom_import_fields %}
+      <section class="rounded-lg border border-hair bg-white p-4">
+        <div class="mb-3 text-[11px] font-medium uppercase tracking-[0.15em] text-muted">Imported profile data</div>
+        <div class="grid gap-2 text-sm">
+          {% if import_fields.company %}
+            <div class="flex justify-between gap-4"><span class="text-muted">Company</span><span class="text-right font-medium text-ink">{{ import_fields.company }}</span></div>
+          {% endif %}
+          {% if import_fields.industry %}
+            <div class="flex justify-between gap-4"><span class="text-muted">Industry</span><span class="text-right font-medium text-ink">{{ import_fields.industry }}</span></div>
+          {% endif %}
+          {% for label, value in custom_import_fields.items %}
+            <div class="flex justify-between gap-4"><span class="text-muted">{{ label }}</span><span class="text-right font-medium text-ink">{{ value }}</span></div>
+          {% endfor %}
+        </div>
+      </section>
+    {% endif %}
+
+    <section class="rounded-lg border border-hair bg-white p-4">
+      <div class="mb-3 text-[11px] font-medium uppercase tracking-[0.15em] text-muted">Profile summary</div>
+      {% if profile_facts %}
+        <div class="space-y-2 text-sm leading-6 text-zinc-700">
+          {% for f in profile_facts %}<p>{{ f }}</p>{% endfor %}
+        </div>
+      {% elif deal.reason %}
+        <p class="text-sm leading-6 text-zinc-700">{{ deal.reason }}</p>
+      {% else %}
+        <p class="text-sm text-muted">No profile summary is available yet.</p>
+      {% endif %}
+    </section>
+
+    <section class="rounded-lg border border-hair bg-white p-4">
+      <div class="mb-3 text-[11px] font-medium uppercase tracking-[0.15em] text-muted">Outreach activity</div>
+      <div class="space-y-3 text-sm">
+        <div class="flex items-start gap-3">
+          <div class="mt-1 h-2 w-2 rounded-full bg-ink"></div>
+          <div>
+            <div class="font-medium text-ink">{{ deal.get_state_display }}</div>
+            <div class="text-muted">Current outreach state</div>
+          </div>
+        </div>
+        {% if deal.email_sent_at %}
+          <div class="flex items-start gap-3">
+            <div class="mt-1 h-2 w-2 rounded-full bg-zinc-400"></div>
+            <div>
+              <div class="font-medium text-ink">Email sent</div>
+              <div class="text-muted">{{ deal.email_sent_at|date:"M d, Y H:i" }}</div>
+            </div>
+          </div>
+        {% endif %}
+        {% if deal.connect_attempts %}
+          <div class="flex items-start gap-3">
+            <div class="mt-1 h-2 w-2 rounded-full bg-zinc-400"></div>
+            <div>
+              <div class="font-medium text-ink">Connection attempted</div>
+              <div class="text-muted">{{ deal.connect_attempts }} attempt{{ deal.connect_attempts|pluralize }}</div>
+            </div>
+          </div>
+        {% endif %}
+        <div class="flex items-start gap-3">
+          <div class="mt-1 h-2 w-2 rounded-full bg-zinc-300"></div>
+          <div>
+            <div class="font-medium text-ink">Last updated</div>
+            <div class="text-muted">{{ deal.update_date|date:"M d, Y H:i" }}</div>
+          </div>
+        </div>
+      </div>
+    </section>
+
+    {% if chat_facts or messages_list %}
+      <section class="rounded-lg border border-hair bg-white p-4">
+        <div class="mb-3 text-[11px] font-medium uppercase tracking-[0.15em] text-muted">Conversation</div>
+        {% if chat_facts %}
+          <div class="mb-4 space-y-2 text-sm leading-6 text-zinc-700">
+            {% for f in chat_facts %}<p>{{ f }}</p>{% endfor %}
+          </div>
+        {% endif %}
+        {% if messages_list %}
+          <div class="space-y-2">
+            {% for m in messages_list %}
+              <div class="flex {% if m.is_outgoing %}justify-end{% else %}justify-start{% endif %}">
+                <div class="max-w-[82%] rounded-lg px-3.5 py-2 text-sm {% if m.is_outgoing %}bg-ink text-white{% else %}bg-paper border border-hair{% endif %}">
+                  {{ m.content|default:"(empty)"|linebreaksbr }}
+                </div>
+              </div>
+            {% endfor %}
+          </div>
+        {% endif %}
+      </section>
+    {% endif %}
+  </div>
+</div>

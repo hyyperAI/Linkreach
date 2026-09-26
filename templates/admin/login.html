@@ -1,0 +1,303 @@
+{% load i18n static %}
+<!doctype html>
+<html lang="{{ LANGUAGE_CODE|default:'en' }}">
+<head>
+  <meta charset="utf-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1">
+  <title>LinkedFlow: Scale Your LinkedIn Outreach with AI</title>
+  <meta name="description" content="LinkedFlow helps teams import leads, manage campaigns, and scale personalized LinkedIn outreach with AI-powered workflows.">
+  <meta property="og:title" content="LinkedFlow: Scale Your LinkedIn Outreach with AI">
+  <meta property="og:description" content="Import leads, manage campaigns, and scale personalized LinkedIn outreach with AI-powered workflows.">
+  <meta property="og:type" content="website">
+  <link rel="icon" type="image/png" href="{% static 'dashboard/img/linkedflow-favicon.png' %}">
+  <link rel="apple-touch-icon" href="{% static 'dashboard/img/linkedflow-favicon.png' %}">
+  <link rel="preconnect" href="https://fonts.googleapis.com">
+  <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+  <link href="https://fonts.googleapis.com/css2?family=Inter:wght@300;400;500;600&family=Poppins:wght@500;600;700&display=swap" rel="stylesheet">
+  <style>
+    :root {
+      --oo-bg: #FAFAFA;
+      --oo-card: #FFFFFF;
+      --oo-ink: #09090B;
+      --oo-muted: #71717A;
+      --oo-hair: #E4E4E7;
+      --oo-panel: #F4F4F5;
+      --oo-danger: #DC2626;
+      --oo-ring: rgba(9, 9, 11, .08);
+      --oo-shadow: 0 1px 2px rgba(9, 9, 11, .05), 0 18px 42px rgba(9, 9, 11, .06);
+    }
+    * { box-sizing: border-box; }
+    body {
+      margin: 0;
+      min-height: 100vh;
+      background: var(--oo-bg);
+      color: var(--oo-ink);
+      font-family: Inter, system-ui, sans-serif;
+      -webkit-font-smoothing: antialiased;
+    }
+    a { color: inherit; }
+    .oo-login-page {
+      min-height: 100vh;
+      display: grid;
+      place-items: center;
+      padding: 48px 20px;
+    }
+    .oo-login-wrap {
+      width: min(896px, 100%);
+    }
+    .oo-login-card {
+      display: grid;
+      min-height: 532px;
+      overflow: hidden;
+      border: 1px solid var(--oo-hair);
+      border-radius: 14px;
+      background: var(--oo-card);
+      box-shadow: var(--oo-shadow);
+    }
+    .oo-login-form-pane {
+      display: flex;
+      align-items: center;
+      justify-content: center;
+      padding: 44px 32px;
+    }
+    .oo-login-form {
+      width: min(384px, 100%);
+    }
+    .oo-brand {
+      display: flex;
+      justify-content: center;
+      margin-bottom: 26px;
+    }
+    .oo-brand img {
+      display: block;
+      width: 178px;
+      height: auto;
+    }
+    .oo-title {
+      margin: 0;
+      text-align: center;
+      font-family: Poppins, system-ui, sans-serif;
+      font-size: 24px;
+      line-height: 1.2;
+      font-weight: 700;
+      letter-spacing: 0;
+    }
+    .oo-subtitle {
+      margin: 10px 0 30px;
+      text-align: center;
+      color: var(--oo-muted);
+      font-size: 15px;
+      line-height: 1.5;
+    }
+    .oo-field {
+      margin-top: 22px;
+    }
+    .oo-label-row {
+      display: flex;
+      align-items: center;
+      justify-content: space-between;
+      gap: 16px;
+      margin-bottom: 10px;
+    }
+    .oo-label {
+      display: block;
+      font-size: 14px;
+      font-weight: 600;
+    }
+    .oo-input {
+      width: 100%;
+      height: 36px;
+      border: 1px solid var(--oo-hair);
+      border-radius: 8px;
+      background: #fff;
+      color: var(--oo-ink);
+      font: 400 14px/1.4 Inter, system-ui, sans-serif;
+      padding: 8px 12px;
+      outline: none;
+      transition: border-color .16s ease, box-shadow .16s ease;
+    }
+    .oo-input::placeholder {
+      color: #71717A;
+    }
+    .oo-input:focus {
+      border-color: var(--oo-ink);
+      box-shadow: 0 0 0 3px var(--oo-ring);
+    }
+    .oo-button {
+      width: 100%;
+      height: 36px;
+      margin-top: 28px;
+      border: 0;
+      border-radius: 8px;
+      background: var(--oo-ink);
+      color: #fff;
+      cursor: pointer;
+      font: 600 14px/1 Inter, system-ui, sans-serif;
+      transition: transform .16s ease, background-color .16s ease, box-shadow .16s ease;
+      box-shadow: 0 1px 2px rgba(9, 9, 11, .12);
+    }
+    .oo-button:hover {
+      background: #18181B;
+      box-shadow: 0 10px 20px rgba(9, 9, 11, .12);
+      transform: translateY(-1px);
+    }
+    .oo-button:active {
+      transform: translateY(0);
+    }
+    .oo-error {
+      margin: 0 0 20px;
+      border: 1px solid #FECACA;
+      border-radius: 8px;
+      background: #FEF2F2;
+      color: var(--oo-danger);
+      padding: 12px 14px;
+      font-size: 13px;
+      line-height: 1.5;
+    }
+    .oo-error ul {
+      margin: 0;
+      padding-left: 18px;
+    }
+    .oo-image-pane {
+      display: none;
+      position: relative;
+      min-height: 532px;
+      border-left: 1px solid var(--oo-hair);
+      background:
+        radial-gradient(circle at center, rgba(255,255,255,.8) 0 44px, transparent 45px),
+        linear-gradient(135deg, transparent calc(50% - 1px), #E4E4E7 50%, transparent calc(50% + 1px)),
+        linear-gradient(45deg, transparent calc(50% - 1px), #E4E4E7 50%, transparent calc(50% + 1px)),
+        var(--oo-panel);
+      place-items: center;
+    }
+    .oo-image-pane::before,
+    .oo-image-pane::after {
+      content: "";
+      position: absolute;
+      background: #E4E4E7;
+      opacity: .7;
+    }
+    .oo-image-pane::before {
+      width: 170px;
+      height: 1px;
+    }
+    .oo-image-pane::after {
+      width: 1px;
+      height: 170px;
+    }
+    .oo-mark {
+      position: relative;
+      z-index: 1;
+      display: grid;
+      place-items: center;
+      width: 54px;
+      height: 54px;
+      border: 1px solid var(--oo-hair);
+      border-radius: 50%;
+      background: #fff;
+      box-shadow: 0 1px 2px rgba(9, 9, 11, .04);
+    }
+    .oo-mark img {
+      width: 26px;
+      height: 26px;
+      object-fit: contain;
+    }
+    .oo-footer {
+      margin-top: 24px;
+      text-align: center;
+      color: var(--oo-muted);
+      font-size: 13px;
+      line-height: 1.6;
+    }
+    .oo-footer a {
+      color: var(--oo-ink);
+      text-underline-offset: 3px;
+    }
+    @media (min-width: 820px) {
+      .oo-login-card {
+        grid-template-columns: 1fr 1fr;
+      }
+      .oo-image-pane {
+        display: grid;
+      }
+    }
+    @media (max-width: 520px) {
+      .oo-login-page {
+        padding: 20px 12px;
+      }
+      .oo-login-card {
+        min-height: auto;
+        border-radius: 12px;
+      }
+      .oo-login-form-pane {
+        padding: 34px 22px;
+      }
+      .oo-brand img {
+        width: 152px;
+      }
+    }
+    @media (prefers-reduced-motion: reduce) {
+      *, *::before, *::after {
+        transition-duration: .01ms !important;
+      }
+      .oo-button:hover {
+        transform: none;
+      }
+    }
+  </style>
+</head>
+<body>
+  <main class="oo-login-page">
+    <div class="oo-login-wrap">
+      <section class="oo-login-card" aria-label="{% trans 'Login' %}">
+        <div class="oo-login-form-pane">
+          <div class="oo-login-form">
+            <div class="oo-brand">
+              <img src="{% static 'dashboard/img/exop-ai-logo.png' %}" alt="Exop AI">
+            </div>
+            <h1 class="oo-title">{% trans "Welcome back" %}</h1>
+            <p class="oo-subtitle">{% trans "Login to your LinkedFlow account" %}</p>
+
+            {% if form.errors and not form.non_field_errors %}
+              <div class="oo-error">
+                {% blocktrans count counter=form.errors.items|length %}Please correct the error below.{% plural %}Please correct the errors below.{% endblocktrans %}
+              </div>
+            {% endif %}
+            {% if form.non_field_errors %}
+              <div class="oo-error">{{ form.non_field_errors }}</div>
+            {% endif %}
+
+            <form action="{{ app_path }}" method="post" id="login-form">
+              {% csrf_token %}
+              <div class="oo-field">
+                <label class="oo-label" for="id_username">{% trans "Email or username" %}</label>
+                <input class="oo-input" type="text" name="username" id="id_username" value="{{ form.username.value|default:'' }}" placeholder="m@example.com" autocapitalize="none" autocomplete="username" autofocus required>
+                {% if form.username.errors %}<div class="oo-error" style="margin-top:10px;">{{ form.username.errors }}</div>{% endif %}
+              </div>
+
+              <div class="oo-field">
+                <div class="oo-label-row">
+                  <label class="oo-label" for="id_password">{% trans "Password" %}</label>
+                </div>
+                <input class="oo-input" type="password" name="password" id="id_password" autocomplete="current-password" required>
+                {% if form.password.errors %}<div class="oo-error" style="margin-top:10px;">{{ form.password.errors }}</div>{% endif %}
+              </div>
+
+              <input type="hidden" name="next" value="{{ next }}">
+              <button class="oo-button" type="submit">{% trans "Login" %}</button>
+            </form>
+          </div>
+        </div>
+        <div class="oo-image-pane" aria-hidden="true">
+          <div class="oo-mark">
+            <img src="{% static 'dashboard/img/exop-ai-logo.png' %}" alt="">
+          </div>
+        </div>
+      </section>
+      <p class="oo-footer">
+        {% trans "By continuing, you agree to use LinkedFlow responsibly." %}
+      </p>
+    </div>
+  </main>
+</body>
+</html>

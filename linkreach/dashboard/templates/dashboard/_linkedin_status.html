@@ -1,0 +1,77 @@
+{% if not profile %}
+  <div class="mb-6 flex h-12 w-12 items-center justify-center rounded-xl bg-zinc-100">
+    <i data-lucide="link-2" class="h-6 w-6"></i>
+  </div>
+  <h2 class="text-xl font-semibold">Connect your LinkedIn account</h2>
+  <p class="mt-2 max-w-xl text-sm leading-6 text-muted">LinkedFlow needs a LinkedIn account before it can send connection requests, check pending invites, or follow up with conversations. Add your credentials below to get started.</p>
+{% else %}
+  <div class="flex flex-wrap items-start justify-between gap-4">
+    <div>
+      <p class="text-xs font-medium uppercase tracking-wider text-muted">Account status</p>
+      <h2 class="mt-2 text-xl font-semibold">{{ profile.linkedin_username }}</h2>
+    </div>
+    <span class="oo-chip {% if status == 'connected' %}border-emerald-200 bg-emerald-50 text-emerald-700{% elif status == 'verifying' %}border-sky-200 bg-sky-50 text-sky-700{% elif status == 'checkpoint_required' or status == 'session_expired' %}border-amber-200 bg-amber-50 text-amber-700{% elif status == 'error' %}border-red-200 bg-red-50 text-red-700{% endif %}">
+      {% if status == 'verifying' %}<i data-lucide="loader-2" class="h-3.5 w-3.5 animate-spin"></i>{% else %}<span class="h-2 w-2 rounded-full bg-current"></span>{% endif %}
+      {{ profile.get_connection_status_display }}
+    </span>
+  </div>
+
+  {% if status == 'not_connected' %}
+    <div class="mt-6 rounded-lg border border-hair bg-zinc-50 p-4">
+      <h3 class="font-medium">Not connected</h3>
+      <p class="mt-1 text-sm text-muted">{% if not profile.legal_accepted %}Accept the safety and legal guidelines below, then start verification.{% else %}This account isn't connected yet. Start verification to sign in.{% endif %}</p>
+    </div>
+  {% elif status == 'credentials_saved' %}
+    <div class="mt-6 rounded-lg border border-hair bg-zinc-50 p-4">
+      <h3 class="font-medium">Ready to verify</h3>
+      <p class="mt-1 text-sm text-muted">Credentials are saved but this account hasn't signed in yet. Starting verification opens a real browser window on this machine and signs in — keep it open until it finishes.</p>
+    </div>
+  {% elif status == 'verifying' %}
+    <div class="mt-6 rounded-lg border border-sky-200 bg-sky-50 p-4">
+      <h3 class="font-medium text-sky-900">Verifying — a browser window is opening</h3>
+      <p class="mt-1 text-sm text-sky-800">LinkedFlow is signing in on this machine. If LinkedIn asks for a verification code or a security checkpoint, complete it in that browser window — you have up to 30 minutes. This page updates automatically.</p>
+    </div>
+  {% elif status == 'checkpoint_required' %}
+    <div class="mt-6 rounded-lg border border-amber-200 bg-amber-50 p-4">
+      <h3 class="font-medium text-amber-900">Verification required</h3>
+      <p class="mt-1 text-sm text-amber-800">LinkedIn needs you to confirm this login before LinkedFlow can continue — a code, an app approval, or a security checkpoint.{% if profile.checkpoint_url %} Open the link below and complete it, then click "Start verification" again.{% else %} Click "Start verification" to reopen the browser window and complete it there.{% endif %}</p>
+      {% if profile.checkpoint_url %}<a href="{{ profile.checkpoint_url }}" target="_blank" rel="noopener" class="mt-2 inline-block text-sm font-medium text-amber-900 underline">Open the verification page &rarr;</a>{% endif %}
+    </div>
+  {% elif status == 'session_expired' %}
+    <div class="mt-6 rounded-lg border border-amber-200 bg-amber-50 p-4">
+      <h3 class="font-medium text-amber-900">Session expired</h3>
+      <p class="mt-1 text-sm text-amber-800">LinkedIn signed this account out. Click "Reconnect" to sign in again — outreach is paused until then.</p>
+    </div>
+  {% elif status == 'error' %}
+    <div class="mt-6 rounded-lg border border-red-200 bg-red-50 p-4">
+      <h3 class="font-medium text-red-900">Connection failed</h3>
+      <p class="mt-1 text-sm text-red-800">{{ profile.last_error_message|default:"LinkedFlow couldn't sign in with the saved credentials." }}</p>
+    </div>
+  {% elif status == 'connected' %}
+    <p class="mt-2 text-sm text-muted">{% if profile.last_verified_at %}Last verified {{ profile.last_verified_at|timesince }} ago.{% endif %}</p>
+  {% endif %}
+
+  <div class="mt-6 flex flex-wrap gap-2">
+    {% if status == 'not_connected' or status == 'credentials_saved' or status == 'checkpoint_required' or status == 'error' %}
+      <form method="post" action="{% url 'dashboard:linkedin_account_action' 'verify' %}">{% csrf_token %}
+        <button class="oo-button oo-button-primary">Start verification</button>
+      </form>
+    {% elif status == 'session_expired' %}
+      <form method="post" action="{% url 'dashboard:linkedin_account_action' 'reconnect' %}">{% csrf_token %}
+        <button class="oo-button oo-button-primary">Reconnect</button>
+      </form>
+    {% elif status == 'connected' %}
+      <form method="post" action="{% url 'dashboard:linkedin_account_action' 'reconnect' %}">{% csrf_token %}
+        <button class="oo-button oo-button-secondary">Reconnect</button>
+      </form>
+    {% endif %}
+    {% if status != 'verifying' %}
+      {% if profile.active %}
+        <form method="post" action="{% url 'dashboard:linkedin_account_action' 'pause' %}">{% csrf_token %}<button class="oo-button oo-button-secondary">Pause automation</button></form>
+      {% else %}
+        <form method="post" action="{% url 'dashboard:linkedin_account_action' 'resume' %}">{% csrf_token %}<button class="oo-button oo-button-secondary">Resume automation</button></form>
+      {% endif %}
+      <form method="post" action="{% url 'dashboard:linkedin_account_action' 'disconnect' %}">{% csrf_token %}<button class="oo-button text-red-700 hover:bg-red-50">Disconnect</button></form>
+    {% endif %}
+  </div>
+{% endif %}

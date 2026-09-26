@@ -1,0 +1,18 @@
+[run]
+source = linkreach
+omit =
+    */migrations/*
+    */vendor/*
+    */__init__.py
+    */admin.py
+    */apps.py
+
+[report]
+show_missing = True
+skip_covered = True
+precision = 1
+fail_under = 75
+exclude_lines =
+    pragma: no cover
+    if TYPE_CHECKING:
+    if __name__ == .__main__.:

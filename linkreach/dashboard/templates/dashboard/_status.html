@@ -1,0 +1,101 @@
+<div class="rounded-lg border p-6 shadow-sm {% if status.tone == 'danger' %}border-red-200 bg-red-50{% elif status.tone == 'warning' %}border-amber-200 bg-amber-50{% elif status.tone == 'info' %}border-sky-200 bg-sky-50{% elif status.tone == 'neutral' %}border-hair bg-zinc-50{% else %}oo-surface{% endif %}">
+  <div class="flex items-center justify-between gap-6 flex-wrap">
+    <div class="flex items-center gap-4">
+      <div class="grid h-12 w-12 place-items-center rounded-lg border {% if status.tone == 'danger' %}border-red-200 bg-card text-red-600{% elif status.tone == 'warning' %}border-amber-200 bg-card text-amber-700{% elif status.tone == 'info' %}border-sky-200 bg-card text-sky-700{% elif status.tone == 'neutral' %}border-hair bg-card text-muted{% else %}border-hair bg-paper text-ink{% endif %}">
+        {% if status.state == 'starting' %}
+          <i data-lucide="loader-2" class="oo-icon animate-spin"></i>
+        {% elif status.state == 'stopping' %}
+          <i data-lucide="pause-circle" class="oo-icon"></i>
+        {% elif status.state == 'not_running' %}
+          <i data-lucide="power-off" class="oo-icon"></i>
+        {% elif status.state == 'hung' or status.state == 'crashed' or status.tone == 'danger' %}
+          <i data-lucide="triangle-alert" class="oo-icon"></i>
+        {% elif status.label == 'Sleeping' %}
+          <i data-lucide="moon" class="oo-icon"></i>
+        {% elif status.label == 'Waiting' %}
+          <i data-lucide="clock" class="oo-icon"></i>
+        {% elif status.label == 'Checking invites' %}
+          <i data-lucide="mail-check" class="oo-icon"></i>
+        {% elif status.label == 'Following up' %}
+          <i data-lucide="messages-square" class="oo-icon"></i>
+        {% elif status.label == 'Connecting' %}
+          <i data-lucide="send" class="oo-icon"></i>
+        {% else %}
+          <i data-lucide="activity" class="oo-icon"></i>
+        {% endif %}
+      </div>
+      <div>
+        <div class="ff-serif text-2xl">{{ status.label }}</div>
+        <div class="text-sm text-muted mt-0.5">
+          {% if status.campaign %}<span class="text-ink">{{ status.campaign }}</span>{% endif %}
+          {% if status.detail %}{% if status.campaign %} · {% endif %}{{ status.detail }}{% endif %}
+          {% if not status.campaign and not status.detail %}Idle{% endif %}
+        </div>
+        {% if status.issue %}
+          <div class="mt-2 text-sm text-red-700">{{ status.issue }}</div>
+        {% endif %}
+      </div>
+    </div>
+    <div class="text-right text-xs text-muted">
+      {% if status.last_active %}
+        Last active {{ status.last_active|timesince }} ago
+      {% else %}
+        No activity yet
+      {% endif %}
+      {% if not status.log_exists %}
+        <div class="mt-1 text-[11px]">Live log off — see note below</div>
+      {% endif %}
+    </div>
+    <div class="flex flex-wrap items-center gap-3">
+      {% if status.process.controls_allowed %}
+        {% if status.state == 'not_running' or status.state == 'crashed' %}
+          <form method="post" action="{% url 'dashboard:bot_action' 'start' %}">
+            {% csrf_token %}
+            <button class="oo-button oo-button-primary">
+              <i data-lucide="play" class="oo-icon"></i> Start bot
+            </button>
+          </form>
+        {% elif status.state == 'running' %}
+          <form method="post" action="{% url 'dashboard:bot_action' 'stop' %}" onsubmit="return confirm('Stop the bot? In-progress LinkedIn actions will finish, then it will shut down cleanly.');">
+            {% csrf_token %}
+            <button class="oo-button oo-button-secondary">
+              <i data-lucide="square" class="oo-icon"></i> Stop bot
+            </button>
+          </form>
+        {% elif status.state == 'hung' %}
+          <form method="post" action="{% url 'dashboard:bot_action' 'force-stop' %}" onsubmit="return confirm('The bot is not responding. Force-stopping may interrupt an in-progress LinkedIn action. Continue?');">
+            {% csrf_token %}
+            <button class="oo-button border-red-200 text-red-700 hover:bg-red-50">
+              <i data-lucide="octagon-x" class="oo-icon"></i> Force stop
+            </button>
+          </form>
+        {% elif status.state == 'starting' %}
+          <span class="oo-button oo-button-secondary cursor-not-allowed opacity-70">
+            <i data-lucide="loader-2" class="oo-icon animate-spin"></i> Starting
+          </span>
+        {% elif status.state == 'stopping' %}
+          <span class="oo-button oo-button-secondary cursor-not-allowed opacity-70">
+            <i data-lucide="loader-2" class="oo-icon animate-spin"></i> Stopping
+          </span>
+        {% endif %}
+      {% else %}
+        <div class="max-w-xs text-right text-xs text-muted">{{ status.process.controls_message }}</div>
+      {% endif %}
+    </div>
+  </div>
+
+  {% if next_up %}
+    <div class="mt-6 pt-5 border-t border-hair">
+      <div class="text-[11px] uppercase tracking-[0.15em] text-muted mb-3">Next up</div>
+      <div class="flex flex-wrap gap-2">
+        {% for t in next_up %}
+          <div class="rounded-md border border-hair bg-card px-3 py-1.5 text-xs">
+            {{ t.label }}
+            <span class="text-muted">· {{ t.when|date:"M d, H:i" }}</span>
+            {% if t.campaign %}<span class="text-muted/70"> · {{ t.campaign }}</span>{% endif %}
+          </div>
+        {% endfor %}
+      </div>
+    </div>
+  {% endif %}
+</div>

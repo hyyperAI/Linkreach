@@ -1,0 +1,424 @@
+{% extends "dashboard/base.html" %}
+{% block title %}{{ campaign.name }} · LinkedFlow{% endblock %}
+{% block content %}
+<section class="oo-surface mb-6 overflow-hidden">
+  <div class="flex flex-col gap-4 border-b border-hair px-6 py-5 lg:flex-row lg:items-start lg:justify-between">
+    <div class="min-w-0 flex-1">
+      <div class="flex flex-wrap items-center gap-2 text-sm text-muted">
+        <span>Campaign overview</span>
+        <span class="rounded-md border px-2 py-0.5 text-[10px] font-medium uppercase tracking-[0.12em] {{ campaign_status_badge.class }}">{{ campaign_status_badge.label }}</span>
+        {% if campaign.outreach_mode == 'csv_personalized' %}
+          <span class="rounded-md border border-hair bg-paper px-2 py-0.5 text-[10px] font-medium uppercase tracking-[0.12em] text-ink">CSV personalized</span>
+        {% endif %}
+      </div>
+      <form method="post" action="{% url 'dashboard:campaign_rename' campaign.pk %}"
+            class="mt-1 flex max-w-3xl items-center gap-2"
+            hx-post="{% url 'dashboard:campaign_rename' campaign.pk %}"
+            hx-target="#oo-app"
+            hx-select="#oo-app"
+            hx-swap="outerHTML transition:true"
+            hx-push-url="true">
+        {% csrf_token %}
+        <input name="name" value="{{ campaign.name }}" class="oo-title-input" aria-label="Campaign name"
+               oninput="document.getElementById('oo-title-save').style.display='inline-flex'"
+               onkeydown="if(event.key==='Enter'){event.preventDefault(); this.form.requestSubmit();}">
+        <button id="oo-title-save" style="display: none;" class="h-8 w-8 shrink-0 items-center justify-center rounded-lg border border-hair bg-white text-muted transition hover:bg-zinc-50 hover:text-ink" title="Save campaign name">
+          <i data-lucide="check" class="oo-icon"></i>
+        </button>
+      </form>
+    </div>
+    <div class="flex shrink-0 items-center gap-1">
+      <form method="post" action="{% url 'dashboard:campaign_status' campaign.pk %}">
+        {% csrf_token %}
+        {% if campaign.status == 'active' %}
+          <input type="hidden" name="status" value="paused">
+          <button class="oo-button oo-button-secondary" title="Pause this campaign without deleting queued work">
+            <i data-lucide="pause" class="oo-icon"></i>
+            Pause campaign
+          </button>
+        {% else %}
+          <input type="hidden" name="status" value="active">
+          <button class="oo-button oo-button-primary" title="Start this campaign">
+            <i data-lucide="play" class="oo-icon"></i>
+            Start campaign
+          </button>
+        {% endif %}
+      </form>
+      <a href="{% url 'dashboard:campaign_edit' campaign.pk %}" class="inline-flex h-9 w-9 items-center justify-center rounded-lg text-muted transition hover:bg-zinc-100 hover:text-ink" title="Edit full campaign">
+        <i data-lucide="pencil" class="oo-icon"></i>
+      </a>
+      <form method="post" action="{% url 'dashboard:campaign_delete' campaign.pk %}"
+            onsubmit="return confirm('Delete “{{ campaign.name|escapejs }}” and all its leads? This cannot be undone.');">
+        {% csrf_token %}
+        <button class="inline-flex h-9 w-9 items-center justify-center rounded-lg text-red-500 transition hover:bg-red-50 hover:text-red-600" title="Delete campaign">
+          <i data-lucide="trash-2" class="oo-icon"></i>
+        </button>
+      </form>
+    </div>
+  </div>
+  <div class="grid gap-4 px-6 py-5">
+    <div class="rounded-lg border border-hair bg-white p-5">
+      <div class="mb-3 flex items-center gap-2 text-[11px] font-medium uppercase tracking-[0.15em] text-muted">
+        <i data-lucide="sparkles" class="oo-icon"></i>
+        AI agent instructions
+      </div>
+      <div class="text-sm leading-7 text-zinc-700">
+        {{ campaign.campaign_objective|default:"No campaign objective has been added yet. Use the pencil action to add the target, voice, offer, and outreach rules for the AI agent." }}
+      </div>
+    </div>
+    <div class="rounded-lg border border-hair bg-paper p-5">
+      <div class="mb-3 flex items-center gap-2 text-[11px] font-medium uppercase tracking-[0.15em] text-muted">
+        <i data-lucide="file-text" class="oo-icon"></i>
+        Product context
+      </div>
+      <div class="text-sm leading-7 text-zinc-700">
+        {{ campaign.product_docs|default:"No product context has been added yet. Add the offer, product notes, proof, and positioning so the AI agent has better context." }}
+      </div>
+    </div>
+  </div>
+</section>
+
+{% if campaign.outreach_mode == 'csv_personalized' %}
+<section class="oo-surface mb-6 overflow-hidden">
+  <div class="border-b border-hair px-6 py-5">
+    <div class="flex flex-col gap-4 lg:flex-row lg:items-center lg:justify-between">
+      <div>
+        <div class="text-[11px] font-medium uppercase tracking-[0.15em] text-muted">Personalized CSV workflow</div>
+        <h2 class="ff-serif mt-1 text-xl">Review messages before outreach starts</h2>
+        <p class="mt-1 max-w-2xl text-sm text-muted">LinkedFlow sends each imported message verbatim after the connection is accepted. AI follow-up becomes eligible only after that opener is confirmed sent.</p>
+      </div>
+      <form method="post" action="{% url 'dashboard:campaign_start_csv_outreach' campaign.pk %}">
+        {% csrf_token %}
+        <button class="oo-button oo-button-primary" {% if not csv_ready_count or not csv_account_ready or not csv_ai_ready or not csv_context_ready %}disabled title="Complete the setup checklist before approving outreach"{% endif %}>
+          <i data-lucide="check-circle-2" class="oo-icon"></i>
+          Approve {{ csv_ready_count }} lead{{ csv_ready_count|pluralize }} for outreach
+        </button>
+      </form>
+    </div>
+  </div>
+  <div class="grid gap-px bg-hair sm:grid-cols-2 xl:grid-cols-4">
+    <div class="bg-white px-5 py-4">
+      <div class="flex items-center gap-2 text-sm font-medium"><i data-lucide="{% if csv_account_ready %}check-circle-2{% else %}circle-alert{% endif %}" class="oo-icon {% if not csv_account_ready %}text-red-500{% endif %}"></i> LinkedIn account</div>
+      <p class="mt-1 text-xs text-muted">{% if csv_account_ready %}Connected and active{% else %}Connect and activate the sender account{% endif %}</p>
+    </div>
+    <div class="bg-white px-5 py-4">
+      <div class="flex items-center gap-2 text-sm font-medium"><i data-lucide="{% if csv_ai_ready %}check-circle-2{% else %}circle-alert{% endif %}" class="oo-icon {% if not csv_ai_ready %}text-red-500{% endif %}"></i> AI provider</div>
+      <p class="mt-1 text-xs text-muted">{% if csv_ai_ready %}Model and API key configured{% else %}Configure AI settings for later follow-up{% endif %}</p>
+    </div>
+    <div class="bg-white px-5 py-4">
+      <div class="flex items-center gap-2 text-sm font-medium"><i data-lucide="{% if csv_context_ready %}check-circle-2{% else %}circle-alert{% endif %}" class="oo-icon {% if not csv_context_ready %}text-red-500{% endif %}"></i> Campaign context</div>
+      <p class="mt-1 text-xs text-muted">{% if csv_context_ready %}Product context and follow-up rules ready{% else %}Add product context and AI instructions{% endif %}</p>
+    </div>
+    <div class="bg-white px-5 py-4">
+      <div class="flex items-center gap-2 text-sm font-medium"><i data-lucide="{% if csv_ready_count %}check-circle-2{% else %}circle-alert{% endif %}" class="oo-icon {% if not csv_ready_count %}text-red-500{% endif %}"></i> Reviewed leads</div>
+      <p class="mt-1 text-xs text-muted">{{ csv_ready_count }} opener{{ csv_ready_count|pluralize }} ready to approve</p>
+    </div>
+  </div>
+</section>
+{% endif %}
+
+<section class="rounded-lg border mb-6 p-5 shadow-sm {% if action_summary.tone == 'danger' %}border-red-200 bg-red-50{% elif action_summary.tone == 'action' %}border-ink/20 bg-zinc-50{% else %}oo-surface{% endif %}">
+  <div class="flex items-center justify-between gap-6 flex-wrap">
+    <div class="flex items-center gap-4">
+      <div class="grid h-11 w-11 place-items-center rounded-lg bg-card border border-hair">
+        {% if action_summary.tone == 'danger' %}
+          <i data-lucide="alert-triangle" class="oo-icon text-red-600"></i>
+        {% elif action_summary.tone == 'action' %}
+          <i data-lucide="mouse-pointer-click" class="oo-icon text-ink"></i>
+        {% else %}
+          <i data-lucide="check-circle-2" class="oo-icon text-ink"></i>
+        {% endif %}
+      </div>
+      <div>
+        <div class="text-[11px] uppercase tracking-[0.15em] text-muted">Next action</div>
+        <div class="font-medium mt-1">{{ action_summary.label }}</div>
+        <div class="text-sm text-muted mt-0.5">{{ action_summary.text }}</div>
+      </div>
+    </div>
+    <div class="rounded-lg border border-hair bg-card px-4 py-3 text-right">
+      <div class="text-[11px] uppercase tracking-[0.15em] text-muted">Focus</div>
+      <div class="ff-serif text-xl mt-1">{{ action_summary.metric }}</div>
+    </div>
+  </div>
+</section>
+
+<section class="oo-surface p-6 mb-8">
+  <div class="flex items-center justify-between mb-4">
+    <h2 class="ff-serif text-xl">Pipeline</h2>
+    <span class="text-[11px] uppercase tracking-[0.15em] text-muted">Campaign funnel</span>
+  </div>
+  <div class="grid grid-cols-2 xl:grid-cols-4 gap-3">
+    {% for label, n in pipeline %}
+      <div class="rounded-lg border border-hair bg-white px-4 py-3">
+        <div class="text-[11px] uppercase tracking-wide text-muted">{{ label }}</div>
+        <div class="ff-serif text-2xl mt-1">{{ n }}</div>
+      </div>
+    {% endfor %}
+  </div>
+</section>
+
+<section class="oo-surface overflow-hidden mb-8">
+  <div class="flex items-baseline justify-between px-6 pt-6 pb-4">
+    <h2 class="ff-serif text-xl">Leads in this campaign</h2>
+    <span class="text-[11px] uppercase tracking-[0.15em] text-muted">
+      Page {{ page.number }} of {{ page.paginator.num_pages }} · {{ deal_count }} total
+    </span>
+  </div>
+
+  <form method="get" class="px-6 pb-4 flex flex-wrap items-center gap-3">
+    <input type="text" name="q" value="{{ q }}" placeholder="Search by handle…"
+           class="!w-64 border border-hair rounded-lg px-4 py-2 text-sm bg-card focus:outline-none focus:border-ink">
+    <select name="state" class="!w-48 border border-hair rounded-lg px-4 py-2 text-sm bg-card focus:outline-none focus:border-ink">
+      <option value="">All states</option>
+      {% for value, label in states %}
+        <option value="{{ value }}" {% if value == state %}selected{% endif %}>{{ label }}</option>
+      {% endfor %}
+    </select>
+    <select name="country" class="!w-40 border border-hair rounded-lg px-4 py-2 text-sm bg-card focus:outline-none focus:border-ink">
+      <option value="">All countries</option>
+      {% for code in countries %}
+        <option value="{{ code }}" {% if code == country %}selected{% endif %}>{{ code|upper }}</option>
+      {% endfor %}
+    </select>
+    <select name="per_page" class="!w-28 border border-hair rounded-lg px-4 py-2 text-sm bg-card focus:outline-none focus:border-ink">
+      <option value="20" {% if per_page == 20 %}selected{% endif %}>20 / page</option>
+      <option value="50" {% if per_page == 50 %}selected{% endif %}>50 / page</option>
+      <option value="100" {% if per_page == 100 %}selected{% endif %}>100 / page</option>
+    </select>
+    <button class="oo-button oo-button-primary">
+      <i data-lucide="filter" class="oo-icon"></i> Apply
+    </button>
+    {% if q or state or country %}
+      <a href="{% url 'dashboard:campaign_detail' campaign.pk %}" class="text-sm text-muted hover:text-ink">Clear</a>
+    {% endif %}
+  </form>
+
+  <form method="post" action="{% url 'dashboard:queue_selected' campaign.pk %}">
+    {% csrf_token %}
+    <div class="px-6 pb-4 flex flex-wrap items-center gap-3">
+      {% if campaign.outreach_mode == 'standard' %}
+      <button type="submit" class="oo-button oo-button-primary">
+        <i data-lucide="send" class="oo-icon"></i> Queue selected
+      </button>
+      <button type="button"
+              data-cmd="python manage.py shell -c &quot;from linkreach.core.models import Campaign; from linkreach.crm.models import Deal, DealState; c=Campaign.objects.get(pk={{ campaign.pk }}); n=Deal.objects.filter(campaign=c, state=DealState.QUALIFIED, lead__public_identifier__in=c.seed_public_ids or []).update(state=DealState.READY_TO_CONNECT); print('Queued', n, 'added profiles')&quot;"
+              onclick="ooCopyCmd(this)"
+              class="oo-button oo-button-secondary">
+        <i data-lucide="copy" class="oo-icon"></i> Copy cmd
+      </button>
+      <a href="{% url 'dashboard:campaign_export' campaign.pk %}" class="oo-button oo-button-secondary">
+        <i data-lucide="download" class="oo-icon"></i> Export CSV
+      </a>
+      <span class="text-xs text-muted">Tick the leads you want, then “Queue selected”. Only Qualified leads can be queued.</span>
+      {% else %}
+      <a href="{% url 'dashboard:campaign_export' campaign.pk %}" class="oo-button oo-button-secondary">
+        <i data-lucide="download" class="oo-icon"></i> Export CSV
+      </a>
+      <span class="text-xs text-muted">Review or edit every imported opener, approve the leads, then start the campaign from the header.</span>
+      {% endif %}
+    </div>
+
+    <div class="overflow-x-auto oo-scrollbar">
+    <table class="w-full min-w-[900px] text-sm">
+      <thead>
+        <tr class="text-left text-[11px] uppercase tracking-[0.15em] text-muted border-y border-hair">
+          {% if campaign.outreach_mode == 'standard' %}<th class="pl-6 pr-2 py-3 font-medium"><input type="checkbox" onclick="ooToggleAll(this)" title="Select all"></th>{% endif %}
+          <th class="px-4 py-3 font-medium">Profile</th>
+          {% if campaign.outreach_mode == 'csv_personalized' %}
+          <th class="px-4 py-3 font-medium">Customized first message</th>
+          <th class="px-4 py-3 font-medium">Delivery</th>
+          <th class="px-4 py-3 font-medium">Website</th>
+          {% else %}
+          <th class="px-4 py-3 font-medium">Summary</th>
+          {% endif %}
+          <th class="px-4 py-3 font-medium">State</th>
+          <th class="px-4 py-3 font-medium">Country</th>
+          {% if campaign.outreach_mode == 'standard' %}<th class="px-4 py-3 font-medium">Updated</th>{% endif %}
+          <th class="px-4 py-3 font-medium"></th>
+        </tr>
+      </thead>
+      <tbody>
+        {% for deal in deals %}
+          <tr class="oo-table-row border-b border-hair/70 last:border-0">
+            {% if campaign.outreach_mode == 'standard' %}<td class="pl-6 pr-2 py-3">
+              {% if deal.state == "Qualified" %}
+                <input type="checkbox" name="deal_ids" value="{{ deal.pk }}" class="oo-row-check">
+              {% endif %}
+            </td>{% endif %}
+            <td class="px-4 py-3 font-medium">
+              <div>{{ deal.display_name|default:deal.lead.public_identifier }}</div>
+              <div class="mt-0.5 max-w-[220px] truncate text-xs font-normal text-muted">{{ deal.lead.public_identifier }}</div>
+              {% if deal.lead.disqualified %}<span class="ml-2 text-[10px] uppercase tracking-wide text-red-500 border border-red-200 rounded px-1.5 py-0.5">disqualified</span>{% endif %}
+            </td>
+            {% if campaign.outreach_mode == 'csv_personalized' %}
+            <td class="px-4 py-3 min-w-[360px]">
+              <textarea name="custom_first_message" form="csv-message-{{ deal.pk }}" rows="3" maxlength="3000" class="min-h-[76px] w-full resize-y rounded-lg border border-hair bg-white px-3 py-2 text-sm leading-5 focus:border-ink focus:outline-none disabled:bg-paper disabled:text-muted" {% if deal.custom_message_status == 'sent' %}disabled{% endif %}>{{ deal.custom_first_message }}</textarea>
+              <div class="mt-1 flex items-center justify-between gap-3 text-[11px] text-muted">
+                <span>Sent exactly as written after connection acceptance.</span>
+                {% if deal.custom_message_status != 'sent' %}<button form="csv-message-{{ deal.pk }}" class="font-medium text-ink hover:underline">{% if deal.custom_message_status == 'failed' %}Save &amp; retry{% else %}Save{% endif %}</button>{% endif %}
+              </div>
+            </td>
+            <td class="px-4 py-3 align-top">
+              <span class="inline-flex rounded-md border px-2.5 py-1 text-xs {% if deal.custom_message_status == 'sent' %}border-emerald-200 bg-emerald-50 text-emerald-700{% elif deal.custom_message_status == 'failed' %}border-red-200 bg-red-50 text-red-700{% else %}border-hair bg-paper text-ink{% endif %}">{{ deal.get_custom_message_status_display }}</span>
+              {% if deal.custom_message_sent_at %}<div class="mt-1 text-[11px] text-muted">{{ deal.custom_message_sent_at|date:"M d, H:i" }}</div>{% endif %}
+              {% if deal.custom_message_error %}<div class="mt-2 max-w-[220px] text-xs leading-5 text-red-600">{{ deal.custom_message_error }}</div>{% endif %}
+            </td>
+            <td class="px-4 py-3 text-muted max-w-[200px]">
+              {% if deal.import_fields.website %}<a href="{{ deal.import_fields.website }}" target="_blank" rel="noopener" class="inline-flex max-w-full items-center gap-1 hover:text-ink"><span class="truncate">{{ deal.import_fields.website }}</span><i data-lucide="external-link" class="oo-icon shrink-0"></i></a>{% else %}—{% endif %}
+            </td>
+            {% else %}
+            <td class="px-4 py-3 text-muted max-w-xs truncate">{{ deal.summary_preview|default:"—" }}</td>
+            {% endif %}
+            <td class="px-4 py-3">
+              <span class="text-xs border rounded-md px-2.5 py-1 {{ deal.state_badge.class }}" {% if deal.state_badge.title %}title="{{ deal.state_badge.title }}"{% endif %}>{{ deal.state_badge.label }}</span>
+            </td>
+            <td class="px-4 py-3 text-muted">{{ deal.lead.country_code|default:"—" }}</td>
+            {% if campaign.outreach_mode == 'standard' %}<td class="px-4 py-3 text-muted">{{ deal.update_date|date:"M d, Y" }}</td>{% endif %}
+            <td class="px-4 py-3 text-right whitespace-nowrap">
+              <button type="button"
+                      onclick="ooOpenDeal('{% url 'dashboard:deal_modal' deal.pk %}')"
+                      class="text-xs text-ink hover:text-ink/70 mr-3">View</button>
+              {% if deal.lead.linkedin_url %}<a href="{{ deal.lead.linkedin_url }}" target="_blank" rel="noopener" class="inline-flex items-center gap-1 text-muted hover:text-ink">LinkedIn <i data-lucide="external-link" class="oo-icon"></i></a>{% endif %}
+            </td>
+          </tr>
+        {% empty %}
+          <tr><td colspan="{% if campaign.outreach_mode == 'csv_personalized' %}7{% else %}7{% endif %}" class="px-6 py-10 text-center text-muted">No leads yet — add profiles from a CSV below.</td></tr>
+        {% endfor %}
+      </tbody>
+    </table>
+    </div>
+  </form>
+  {% if campaign.outreach_mode == 'csv_personalized' %}
+    {% for deal in deals %}
+      {% if deal.custom_message_status != 'sent' %}
+      <form id="csv-message-{{ deal.pk }}" method="post" action="{% url 'dashboard:campaign_custom_message' campaign.pk deal.pk %}">{% csrf_token %}</form>
+      {% endif %}
+    {% endfor %}
+  {% endif %}
+
+  {% if page.paginator.num_pages > 1 %}
+    <div class="px-6 py-4 flex items-center justify-between text-sm border-t border-hair">
+      <div class="text-muted">Page {{ page.number }} of {{ page.paginator.num_pages }}</div>
+      <div class="flex gap-2">
+        {% if page.has_previous %}
+          <a href="?{% if querystring %}{{ querystring }}&{% endif %}page={{ page.previous_page_number }}" class="oo-button oo-button-secondary"><i data-lucide="arrow-left" class="oo-icon"></i> Previous</a>
+        {% endif %}
+        {% if page.has_next %}
+          <a href="?{% if querystring %}{{ querystring }}&{% endif %}page={{ page.next_page_number }}" class="oo-button oo-button-secondary">Next <i data-lucide="arrow-right" class="oo-icon"></i></a>
+        {% endif %}
+      </div>
+    </div>
+  {% endif %}
+</section>
+
+<section class="oo-surface overflow-hidden">
+  <div class="border-b border-hair px-6 py-5">
+    <div class="flex flex-col gap-4 lg:flex-row lg:items-start lg:justify-between">
+      <div>
+        <h2 class="ff-serif text-xl">Add Profiles</h2>
+        <p class="mt-1 max-w-2xl text-sm text-muted">{% if campaign.outreach_mode == 'csv_personalized' %}Upload filtered leads with a unique message for each person. You will map and review the fields before import.{% else %}Import a CSV or paste LinkedIn profile URLs. Imported fields become profile context for future personalization.{% endif %}</p>
+      </div>
+      {% if campaign.outreach_mode == 'standard' %}
+      <div class="inline-flex rounded-lg border border-hair bg-paper p-1 text-sm">
+        <button type="button" class="oo-import-tab rounded-md bg-white px-3 py-1.5 font-medium text-ink shadow-sm" data-target="oo-csv-panel">
+          CSV import
+        </button>
+        <button type="button" class="oo-import-tab rounded-md px-3 py-1.5 font-medium text-muted transition hover:text-ink" data-target="oo-manual-panel">
+          Paste URLs
+        </button>
+      </div>
+      {% endif %}
+    </div>
+  </div>
+
+  <div class="p-6">
+    <div id="oo-csv-panel" class="oo-import-panel">
+      <div class="grid gap-6 lg:grid-cols-[minmax(0,1fr)_320px]">
+        <form method="post" action="{% url 'dashboard:campaign_import_csv' campaign.pk %}" enctype="multipart/form-data" class="rounded-lg border border-hair bg-white p-5">
+          {% csrf_token %}
+          <input type="hidden" name="step" value="preview">
+          <div class="mb-4">
+            <div class="mb-1 flex items-center gap-2 text-[11px] font-medium uppercase tracking-[0.15em] text-muted">
+              <i data-lucide="upload" class="oo-icon"></i>
+              Add profiles from CSV
+            </div>
+            <p class="text-sm text-muted">{% if campaign.outreach_mode == 'csv_personalized' %}Upload a lead CSV containing LinkedIn URL and customized first message columns.{% else %}Upload any lead CSV, then map the columns before profiles are added to this campaign.{% endif %}</p>
+          </div>
+          <label class="block text-sm font-medium text-ink mb-2" for="csv_file">CSV file</label>
+          <input id="csv_file" name="csv_file" type="file" accept=".csv,text/csv"
+                 class="block w-full rounded-lg border border-hair bg-white px-3 py-2 text-sm text-ink file:mr-3 file:rounded-md file:border-0 file:bg-ink file:px-3 file:py-1.5 file:text-sm file:font-medium file:text-white">
+          <div class="mt-4 flex flex-wrap items-center gap-3">
+            <button class="oo-button oo-button-primary">
+              <i data-lucide="user-plus" class="oo-icon"></i>
+              Add profiles from CSV
+              <i data-lucide="arrow-right" class="oo-icon"></i>
+            </button>
+            <span class="text-xs text-muted">You will review mappings before adding profiles.</span>
+          </div>
+        </form>
+
+        <div class="rounded-lg border border-hair bg-paper p-5 text-sm">
+          <div class="font-medium text-ink">Import flow</div>
+          <ol class="mt-3 space-y-3 text-muted">
+            <li class="flex gap-3"><span class="grid h-6 w-6 shrink-0 place-items-center rounded-full border border-hair bg-white text-xs text-ink">1</span><span>Upload CSV</span></li>
+            <li class="flex gap-3"><span class="grid h-6 w-6 shrink-0 place-items-center rounded-full border border-hair bg-white text-xs text-ink">2</span><span>Map LinkedIn, contact fields{% if campaign.outreach_mode == 'csv_personalized' %}, and the required message{% endif %}</span></li>
+            <li class="flex gap-3"><span class="grid h-6 w-6 shrink-0 place-items-center rounded-full border border-hair bg-white text-xs text-ink">3</span><span>Review profiles{% if campaign.outreach_mode == 'csv_personalized' %} and exact messages{% endif %}, then import</span></li>
+          </ol>
+        </div>
+      </div>
+    </div>
+
+    {% if campaign.outreach_mode == 'standard' %}<div id="oo-manual-panel" class="oo-import-panel hidden">
+      <form method="post" class="rounded-lg border border-hair bg-white p-5">
+        {% csrf_token %}
+        <div class="mb-4">
+          <div class="mb-1 flex items-center gap-2 text-[11px] font-medium uppercase tracking-[0.15em] text-muted">
+            <i data-lucide="user-plus" class="oo-icon"></i>
+            Add LinkedIn profiles
+          </div>
+          <p class="text-sm text-muted">Paste profile URLs when you only have LinkedIn links. Use one URL per line.</p>
+        </div>
+        <textarea name="urls" rows="6" placeholder="https://www.linkedin.com/in/username/
+https://www.linkedin.com/in/another-person/
+https://www.linkedin.com/in/third-person/"></textarea>
+        <div class="mt-4 flex items-center gap-4">
+          <button class="oo-button oo-button-primary">
+            <i data-lucide="user-plus" class="oo-icon"></i> Add profiles
+          </button>
+          <span class="text-xs text-muted">Bulk paste supported.</span>
+        </div>
+      </form>
+    </div>{% endif %}
+  </div>
+</section>
+{% endblock %}
+
+{% block scripts %}
+<script>
+  function ooCopyCmd(btn) {
+    const cmd = btn.dataset.cmd;
+    const original = btn.textContent;
+    navigator.clipboard.writeText(cmd).then(function () {
+      btn.textContent = "Copied";
+      setTimeout(function () { btn.textContent = original; }, 1500);
+    }).catch(function () { window.prompt("Copy this command:", cmd); });
+  }
+  function ooToggleAll(master) {
+    document.querySelectorAll('.oo-row-check').forEach(function (c) { c.checked = master.checked; });
+  }
+  document.querySelectorAll('.oo-import-tab').forEach(function (tab) {
+    tab.addEventListener('click', function () {
+      document.querySelectorAll('.oo-import-tab').forEach(function (item) {
+        item.classList.remove('bg-white', 'text-ink', 'shadow-sm');
+        item.classList.add('text-muted');
+      });
+      document.querySelectorAll('.oo-import-panel').forEach(function (panel) {
+        panel.classList.add('hidden');
+      });
+      tab.classList.add('bg-white', 'text-ink', 'shadow-sm');
+      tab.classList.remove('text-muted');
+      document.getElementById(tab.dataset.target).classList.remove('hidden');
+    });
+  });
+</script>
+{% endblock %}

@@ -1,0 +1,26 @@
+{% extends "dashboard/base.html" %}
+{% block title %}{{ title }} · LinkedFlow{% endblock %}
+{% block content %}
+<section class="oo-surface overflow-hidden">
+  <form method="post" class="mx-auto w-full max-w-3xl px-6 py-8">
+    {% csrf_token %}
+    <div class="space-y-6">
+      {% for field in form %}
+        <div class="space-y-2">
+          <label for="{{ field.id_for_label }}" class="block text-sm font-medium text-ink">{{ field.label }}</label>
+          {{ field }}
+          {% if field.help_text %}<p class="text-sm leading-6 text-muted">{{ field.help_text }}</p>{% endif %}
+          {% for e in field.errors %}<p class="text-sm text-red-600">{{ e }}</p>{% endfor %}
+        </div>
+      {% endfor %}
+    </div>
+
+    <div class="mt-8 flex flex-wrap items-center gap-3 border-t border-hair pt-5">
+      <a href="{% url 'dashboard:campaigns' %}" class="oo-button oo-button-secondary">Cancel</a>
+      <button class="oo-button oo-button-primary">
+        <i data-lucide="check" class="oo-icon"></i> Save campaign
+      </button>
+    </div>
+  </form>
+</section>
+{% endblock %}

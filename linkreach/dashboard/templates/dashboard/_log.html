@@ -1,0 +1,11 @@
+{% if log_exists %}
+  <pre class="oo-scrollbar rounded-lg border border-hair bg-paper p-4 text-[11px] leading-relaxed text-muted whitespace-pre-wrap break-words max-h-96 overflow-y-auto">{% for line in log_lines %}{{ line }}
+{% empty %}(log is empty){% endfor %}</pre>
+{% else %}
+  <div class="text-sm text-muted">
+    No live log yet. To see the bot's console output here, start it with output saved to a file:
+    <pre class="mt-3 text-[11px] bg-paper border border-hair rounded-lg p-3 whitespace-pre-wrap">mkdir logs 2>NUL
+python manage.py rundaemon > logs\daemon.log 2>&1</pre>
+    <p class="mt-2 text-[11px]">(In the next step, the Start button will do this for you automatically.)</p>
+  </div>
+{% endif %}

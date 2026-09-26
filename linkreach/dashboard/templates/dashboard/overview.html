@@ -1,0 +1,201 @@
+{% extends "dashboard/base.html" %}
+{% block title %}Overview · LinkedFlow{% endblock %}
+{% block workspace_actions %}
+  <a href="{% url 'dashboard:campaign_create' %}" class="oo-button oo-button-primary">
+    <i data-lucide="plus" class="oo-icon"></i> New campaign
+  </a>
+{% endblock %}
+{% block content %}
+<section class="grid grid-cols-1 sm:grid-cols-2 xl:grid-cols-4 gap-5 mb-6">
+  <div class="oo-surface p-5">
+    <div class="flex items-start justify-between gap-4">
+      <div class="text-sm text-muted">Active campaigns</div>
+      <span class="oo-chip">
+        <i data-lucide="megaphone" class="oo-icon"></i> Live
+      </span>
+    </div>
+    <div class="ff-serif text-3xl font-semibold tabular-nums mt-3">{{ stats.active_campaigns }}</div>
+    <div class="mt-6 text-sm font-medium">Campaign workspace</div>
+    <div class="text-sm text-muted mt-1">Campaigns with lead activity</div>
+  </div>
+  <div class="oo-surface p-5">
+    <div class="flex items-start justify-between gap-4">
+      <div class="text-sm text-muted">Requests sent</div>
+      <span class="oo-chip">
+        <i data-lucide="send" class="oo-icon"></i> Total
+      </span>
+    </div>
+    <div class="ff-serif text-3xl font-semibold tabular-nums mt-3">{{ stats.connects_sent }}</div>
+    <div class="mt-6 text-sm font-medium">Outbound volume</div>
+    <div class="text-sm text-muted mt-1">All-time connection attempts</div>
+  </div>
+  <a href="{% url 'dashboard:conversations' %}" class="oo-surface oo-interactive p-5 block">
+    <div class="flex items-start justify-between gap-4">
+      <div class="text-sm text-muted">In conversation</div>
+      <span class="oo-chip">
+        <i data-lucide="messages-square" class="oo-icon"></i> Open
+      </span>
+    </div>
+    <div class="ff-serif text-3xl font-semibold tabular-nums mt-3">{{ stats.in_conversation }}</div>
+    <div class="mt-6 text-sm font-medium">Conversation pipeline</div>
+    <div class="text-sm text-muted mt-1">View conversations</div>
+  </a>
+  <div class="oo-surface p-5">
+    <div class="flex items-start justify-between gap-4">
+      <div class="text-sm text-muted">Connected</div>
+      <span class="oo-chip">
+        <i data-lucide="user-check" class="oo-icon"></i> Won
+      </span>
+    </div>
+    <div class="ff-serif text-3xl font-semibold tabular-nums mt-3">{{ stats.connected }}</div>
+    <div class="mt-6 text-sm font-medium">Network growth</div>
+    <div class="text-sm text-muted mt-1">Accepted or completed leads</div>
+  </div>
+</section>
+
+<section class="grid grid-cols-1 md:grid-cols-3 gap-5 mb-8">
+  <a href="{% url 'dashboard:leads' %}?state=Qualified" class="oo-surface oo-interactive p-5">
+    <div class="text-sm text-muted">Qualified</div>
+    <div class="mt-3 flex items-end justify-between">
+      <div class="ff-serif text-3xl font-semibold tabular-nums">{{ stats.qualified }}</div>
+      <span class="text-xs text-muted">Need review</span>
+    </div>
+  </a>
+  <a href="{% url 'dashboard:leads' %}?state=Pending" class="oo-surface oo-interactive p-5">
+    <div class="text-sm text-muted">Pending invites</div>
+    <div class="mt-3 flex items-end justify-between">
+      <div class="ff-serif text-3xl font-semibold tabular-nums">{{ stats.pending }}</div>
+      <span class="text-xs text-muted">Waiting for accepts</span>
+    </div>
+  </a>
+  <a href="{% url 'dashboard:leads' %}?state=Failed" class="oo-surface oo-interactive p-5">
+    <div class="text-[11px] uppercase tracking-[0.15em] text-muted">Failed</div>
+    <div class="mt-3 flex items-end justify-between">
+      <div class="ff-serif text-3xl font-semibold tabular-nums">{{ stats.failed }}</div>
+      <span class="text-xs text-muted">Rejected or errored</span>
+    </div>
+  </a>
+</section>
+
+<section class="grid grid-cols-1 xl:grid-cols-3 gap-6">
+  <div class="xl:col-span-2 oo-surface p-6">
+    <div class="mb-6">
+      <div class="flex items-start justify-between gap-4">
+        <div>
+          <h2 class="ff-serif text-xl font-semibold">Connection requests</h2>
+          <p class="text-sm text-muted mt-2">Showing connection requests for the last 30 days</p>
+        </div>
+        <span class="oo-chip">
+          <i data-lucide="chart-area" class="oo-icon"></i> Live data
+        </span>
+      </div>
+    </div>
+    <div class="h-[290px]">
+      <canvas id="chart"></canvas>
+    </div>
+    <div class="mt-6 flex w-full items-start gap-2 text-sm">
+      <div class="grid gap-2">
+        <div class="flex items-center gap-2 leading-none font-medium">
+          {% if chart_trend > 0 %}
+            Trending up by {{ chart_trend }}% this week <i data-lucide="trending-up" class="oo-icon"></i>
+          {% elif chart_trend < 0 %}
+            Trending down by {{ chart_trend_abs }}% this week <i data-lucide="trending-down" class="oo-icon"></i>
+          {% else %}
+            No movement this week <i data-lucide="minus" class="oo-icon"></i>
+          {% endif %}
+        </div>
+        <div class="flex items-center gap-2 leading-none text-muted">
+          {{ chart_range }}
+        </div>
+      </div>
+    </div>
+  </div>
+  <div class="oo-surface p-6">
+    <h2 class="ff-serif text-xl">Operator focus</h2>
+    <div class="mt-5 space-y-4 text-sm">
+      <a href="{% url 'dashboard:campaigns' %}" class="oo-interactive flex items-center justify-between rounded-lg border border-hair px-4 py-3 hover:bg-zinc-50">
+        <span class="flex items-center gap-2"><i data-lucide="list-checks" class="oo-icon text-ink"></i>Review campaigns</span>
+        <i data-lucide="chevron-right" class="oo-icon text-muted"></i>
+      </a>
+      <a href="{% url 'dashboard:leads' %}?state=Qualified" class="oo-interactive flex items-center justify-between rounded-lg border border-hair px-4 py-3 hover:bg-zinc-50">
+        <span class="flex items-center gap-2"><i data-lucide="user-plus" class="oo-icon text-ink"></i>Queue qualified leads</span>
+        <i data-lucide="chevron-right" class="oo-icon text-muted"></i>
+      </a>
+      <a href="{% url 'dashboard:monitor' %}" class="oo-interactive flex items-center justify-between rounded-lg border border-hair px-4 py-3 hover:bg-zinc-50">
+        <span class="flex items-center gap-2"><i data-lucide="activity" class="oo-icon text-ink"></i>Check bot status</span>
+        <i data-lucide="chevron-right" class="oo-icon text-muted"></i>
+      </a>
+    </div>
+  </div>
+</section>
+{% endblock %}
+
+{% block scripts %}
+<script>
+  (function () {
+  const chartCanvas = document.getElementById('chart');
+  if (!chartCanvas || !window.Chart) return;
+  const chartGradient = chartCanvas.getContext('2d').createLinearGradient(0, 0, 0, 290);
+  chartGradient.addColorStop(0, 'rgba(9, 9, 11, 0.16)');
+  chartGradient.addColorStop(1, 'rgba(9, 9, 11, 0.03)');
+
+  new Chart(chartCanvas, {
+    type: 'line',
+    data: {
+      labels: {{ chart_labels|safe }},
+      datasets: [{
+        data: {{ chart_data|safe }},
+        borderColor: '#09090B',
+        backgroundColor: chartGradient,
+        fill: true,
+        tension: .42,
+        pointRadius: 0,
+        borderWidth: 2
+      }]
+    },
+    options: {
+      responsive: true,
+      maintainAspectRatio: false,
+      interaction: { intersect: false, mode: 'index' },
+      plugins: {
+        legend: { display: false },
+        tooltip: {
+          displayColors: false,
+          backgroundColor: '#FFFFFF',
+          titleColor: '#1A1A1A',
+          bodyColor: '#73736B',
+          borderColor: '#ECECEC',
+          borderWidth: 1,
+          padding: 12,
+          callbacks: {
+            label: function (context) {
+              return context.parsed.y + ' requests';
+            }
+          }
+        }
+      },
+      scales: {
+        y: {
+          beginAtZero: true,
+          ticks: { precision: 0, color: '#73736B' },
+          border: { display: false },
+          grid: { color: '#F4F4F5' }
+        },
+        x: {
+          grid: { display: false },
+          border: { display: false },
+          ticks: {
+            color: '#73736B',
+            maxTicksLimit: 6,
+            callback: function(value) {
+              const label = this.getLabelForValue(value);
+              return label.slice(0, 6);
+            }
+          }
+        }
+      }
+    }
+  });
+  })();
+</script>
+{% endblock %}

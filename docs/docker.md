@@ -1,0 +1,115 @@
+# Docker Installation and Usage
+
+## Quick Start (Pre-built Image — Recommended)
+
+Pre-built production images are published to GitHub Container Registry on every push to `master`.
+
+```bash
+docker run --pull always -it -e ENABLE_VNC=true -p 6080:6080 -p 5900:5900 -v linkreach_db:/app/data ghcr.io/hyyperAI/linkreach:latest
+```
+
+Watch the live browser (and clear any LinkedIn checkpoint) at **http://localhost:6080/vnc.html**.
+
+> **`-e ENABLE_VNC=true` is required for the viewer.** The VNC stack (Xvfb + x11vnc + noVNC) is installed in the image but only started when `ENABLE_VNC=true`. Without it, `x11vnc` (5900) and the noVNC web server (6080) never start, so publishing the ports with `-p` leaves nothing listening. The compose setup (`local.yml`) sets this for you; plain `docker run` does not.
+
+The interactive onboarding will guide you through LinkedIn credentials, LLM API key, and campaign setup on first run. All data (CRM database, cookies, model blobs, embeddings) persists in the `linkreach_db` Docker volume.
+
+### Available Tags
+
+| Tag | Description |
+|:----|:------------|
+| `latest` | Latest build from `master` |
+| `sha-<commit>` | Pinned to a specific commit |
+| `1.0.0` / `1.0` | Semantic version (when tagged) |
+
+### Live Browser View (noVNC)
+
+The container ships a noVNC web viewer for watching the automation live — and for clearing a LinkedIn security checkpoint by hand when one appears. Open it in any browser (no password):
+
+```
+http://localhost:6080/vnc.html
+```
+
+Prefer a native VNC client? One is also exposed on `localhost:5900`. On Linux with `vinagre`:
+```bash
+vinagre vnc://127.0.0.1:5900
+```
+
+> Both ports must be published *and* `ENABLE_VNC=true` must be set for the viewers to work — see the `-e ENABLE_VNC=true -p 6080:6080 -p 5900:5900` flags in the run command above.
+
+> **Seeing `SyntaxError: ... does not provide an export named 'encodeUTF8'`?** That's a stale browser cache of noVNC assets from an older image, not a container bug. Hard-reload the page (Ctrl+Shift+R) or open it in a private window.
+
+### Stopping & Restarting
+
+```bash
+# Find the container
+docker ps
+
+# Stop it
+docker stop <container-id>
+
+# Restart (data persists in the linkreach_db volume)
+docker run --pull always -it -e ENABLE_VNC=true -p 6080:6080 -p 5900:5900 -v linkreach_db:/app/data ghcr.io/hyyperAI/linkreach:latest
+```
+
+---
+
+## Build from Source (Docker Compose)
+
+For development or customization, you can build the image locally. The compose file (`local.yml`)
+mounts the entire project directory into the container for live code editing.
+
+### Prerequisites
+
+- [Make](https://www.gnu.org/software/make/)
+- [Docker](https://www.docker.com/)
+- [Docker Compose](https://docs.docker.com/compose/)
+
+### Build & Run
+
+```bash
+git clone https://github.com/hyyperAI/Linkreach.git
+cd linkreach
+
+# Build and start
+make up
+```
+
+This builds the Docker image from source with `BUILD_ENV=local` (includes test dependencies) and starts the daemon.
+
+**Note:** The compose file uses `HOST_UID` / `HOST_GID` environment variables (defaulting to 1000)
+for file ownership. If your host UID differs from 1000, set them explicitly:
+
+```bash
+HOST_UID=$(id -u) HOST_GID=$(id -g) make up
+```
+
+### Useful Commands
+
+| Command | Description |
+|:--------|:------------|
+| `make build` | Build the Docker image without starting |
+| `make up` | Build and start the service |
+| `make stop` | Stop the running containers |
+| `make logs` | Follow application logs |
+| `make up-view` | Start + open VNC viewer (Linux, requires `vinagre`) |
+| `make view` | Open VNC viewer standalone (requires `vinagre`) |
+| `make docker-test` | Run the test suite in Docker |
+
+### VNC with Docker Compose
+
+The live browser view is exposed two ways: the noVNC web viewer at **http://localhost:6080/vnc.html** (open in any browser), or the native VNC port `localhost:5900`. Use `make up-view` to auto-open the native viewer, or connect manually with any VNC client.
+
+### Volume Mounts
+
+The pre-built `docker run` command uses a named Docker volume (`linkreach_db`) mounted at `/app/data` for data persistence (database, config). The compose setup (`local.yml`) mounts the entire repo `.:/app` for live code editing during development.
+
+### Use an existing `db.sqlite3`
+
+To run against a database file you already have, bind-mount the host **directory** containing it onto `/app/data` (the app opens `/app/data/db.sqlite3`):
+
+```bash
+docker run --pull always -it -e ENABLE_VNC=true -p 6080:6080 -p 5900:5900 -v ~/.linkreach/data:/app/data ghcr.io/hyyperAI/linkreach:latest
+```
+
+Place your `db.sqlite3` inside the mounted directory (`~/.linkreach/data/` above; swap for your own path). Two caveats: the dir and file must be writable by uid 1000 (the container's `ubuntu` user) or writes fail with `readonly database`; and `rundaemon` runs `migrate` on startup, so back the file up first (`cp db.sqlite3{,.bak}`) if it's precious.

@@ -1,0 +1,75 @@
+{% extends "dashboard/base.html" %}
+{% block title %}Conversations · LinkedFlow{% endblock %}
+{% block content %}
+<div class="grid grid-cols-1 md:grid-cols-3 gap-5 mb-6">
+  <div class="oo-surface p-5">
+    <div class="text-[11px] uppercase tracking-[0.15em] text-muted">Total threads</div>
+    <div class="ff-serif text-3xl mt-2">{{ total }}</div>
+  </div>
+  <div class="oo-surface p-5">
+    <div class="text-[11px] uppercase tracking-[0.15em] text-muted">Awaiting reply</div>
+    <div class="ff-serif text-3xl mt-2">{{ awaiting }}</div>
+  </div>
+  <a href="{% url 'dashboard:monitor' %}" class="oo-surface oo-interactive p-5">
+    <div class="text-[11px] uppercase tracking-[0.15em] text-muted">Live status</div>
+    <div class="mt-3 inline-flex items-center gap-2 text-sm font-medium">Open monitor <i data-lucide="arrow-right" class="oo-icon"></i></div>
+  </a>
+</div>
+
+<div class="oo-surface overflow-x-auto oo-scrollbar">
+  <table class="w-full min-w-[850px] text-sm">
+    <thead>
+      <tr class="text-left text-[11px] uppercase tracking-[0.15em] text-muted border-b border-hair">
+        <th class="px-6 py-4 font-medium">Profile</th>
+        <th class="px-6 py-4 font-medium">Mode</th>
+        <th class="px-6 py-4 font-medium">Campaign</th>
+        <th class="px-6 py-4 font-medium">Last message</th>
+        <th class="px-6 py-4 font-medium">When</th>
+        <th class="px-6 py-4 font-medium"></th>
+      </tr>
+    </thead>
+    <tbody>
+      {% for deal in convos %}
+        <tr class="oo-table-row border-b border-hair/70 last:border-0">
+          <td class="px-6 py-4 font-medium">
+            <a href="{% url 'dashboard:conversation_detail' deal.pk %}" class="hover:underline">{{ deal.display_name|default:deal.lead.public_identifier }}</a>
+            <div class="mt-1 text-xs text-muted">{{ deal.lead.public_identifier }}</div>
+            <span class="ml-2 text-[10px] uppercase tracking-wide rounded px-1.5 py-0.5 border
+              {% if deal.last_incoming %}text-ink border-zinc-300 bg-zinc-50{% else %}text-muted border-hair{% endif %}">
+              {% if deal.last_incoming %}awaiting reply{% else %}we replied{% endif %}
+            </span>
+          </td>
+          <td class="px-6 py-4">
+            <span class="oo-chip {% if deal.reply_mode == 'manual' %}bg-zinc-100 text-ink{% else %}text-muted{% endif %}">
+              {% if deal.reply_mode == 'manual' %}Manual{% else %}Auto{% endif %}
+            </span>
+          </td>
+          <td class="px-6 py-4 text-muted">{{ deal.campaign.name }}</td>
+          <td class="px-6 py-4 text-muted max-w-sm truncate">
+            {% if deal.last_msg %}
+              <span class="text-[11px] uppercase tracking-wide {% if deal.last_msg.is_outgoing %}text-ink{% else %}text-zinc-700{% endif %}">
+                {% if deal.last_msg.is_outgoing %}You:{% else %}Them:{% endif %}
+              </span>
+              {{ deal.last_msg.content|default:"(empty)"|truncatechars:80 }}
+            {% else %}—{% endif %}
+          </td>
+          <td class="px-6 py-4 text-muted whitespace-nowrap">{{ deal.last_msg.creation_date|date:"M d, H:i" }}</td>
+          <td class="px-6 py-4 text-right whitespace-nowrap">
+            <a href="{% url 'dashboard:conversation_detail' deal.pk %}" class="text-xs text-ink hover:text-ink/70 mr-3">View chat</a>
+            {% if deal.lead.linkedin_url %}
+              <a href="{{ deal.lead.linkedin_url }}" target="_blank" rel="noopener" class="inline-flex items-center gap-1 text-muted hover:text-ink">LinkedIn <i data-lucide="external-link" class="oo-icon"></i></a>
+            {% endif %}
+          </td>
+        </tr>
+      {% empty %}
+        <tr><td colspan="6" class="px-6 py-14 text-center text-muted">
+          <div class="mx-auto mb-3 grid h-10 w-10 place-items-center rounded-lg border border-hair bg-paper">
+            <i data-lucide="messages-square" class="oo-icon"></i>
+          </div>
+          No conversations yet — the bot starts one once a lead accepts and the first message is sent.
+        </td></tr>
+      {% endfor %}
+    </tbody>
+  </table>
+</div>
+{% endblock %}

@@ -1,0 +1,354 @@
+{% load static %}
+<!doctype html>
+<html lang="en">
+<head>
+  <meta charset="utf-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1">
+  <title>{% block title %}LinkedFlow: Scale Your LinkedIn Outreach with AI{% endblock %}</title>
+  <meta name="description" content="{% block meta_description %}LinkedFlow helps teams import leads, manage campaigns, and scale personalized LinkedIn outreach with AI-powered workflows.{% endblock %}">
+  <meta property="og:title" content="LinkedFlow: Scale Your LinkedIn Outreach with AI">
+  <meta property="og:description" content="Import leads, manage campaigns, and scale personalized LinkedIn outreach with AI-powered workflows.">
+  <meta property="og:type" content="website">
+  <link rel="icon" type="image/png" href="{% static 'dashboard/img/linkedflow-favicon.png' %}">
+  <link rel="apple-touch-icon" href="{% static 'dashboard/img/linkedflow-favicon.png' %}">
+  <script src="https://cdn.tailwindcss.com"></script>
+  <script src="https://unpkg.com/htmx.org@1.9.12"></script>
+  <script src="https://unpkg.com/lucide@latest"></script>
+  <script src="https://cdn.jsdelivr.net/npm/chart.js@4"></script>
+  <link rel="preconnect" href="https://fonts.googleapis.com">
+  <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+  <link href="https://fonts.googleapis.com/css2?family=Inter:wght@300;400;500;600&family=Poppins:wght@400;500;600;700&display=swap" rel="stylesheet">
+  <script>
+    tailwind.config = {
+      theme: { extend: {
+        colors: { ink:'#09090B', paper:'#FAFAFA', card:'#FFFFFF', hair:'#E4E4E7', gold:'#09090B', muted:'#71717A' },
+        fontFamily: { primary:['Poppins','system-ui','sans-serif'], sans:['Inter','system-ui','sans-serif'] }
+      }}
+    }
+  </script>
+  <style>
+    :root {
+      --oo-bg: #FAFAFA;
+      --oo-card: #FFFFFF;
+      --oo-ink: #09090B;
+      --oo-muted: #71717A;
+      --oo-hair: #E4E4E7;
+      --oo-hover: #F4F4F5;
+      --oo-shadow: 0 1px 2px rgba(9, 9, 11, .04), 0 8px 24px rgba(9, 9, 11, .045);
+      --oo-shadow-hover: 0 2px 4px rgba(9, 9, 11, .05), 0 16px 36px rgba(9, 9, 11, .08);
+    }
+    body { font-family: Inter, system-ui, sans-serif; background: var(--oo-bg); }
+    .ff-serif, h1, h2, h3, .oo-primary { font-family: Poppins, system-ui, sans-serif; letter-spacing: 0; }
+    .oo-icon { width: 1rem; height: 1rem; stroke-width: 1.8; }
+    .oo-scrollbar::-webkit-scrollbar { width: .55rem; height: .55rem; }
+    .oo-scrollbar::-webkit-scrollbar-thumb { background: #D4D4D8; border-radius: 999px; }
+    .oo-surface {
+      background: var(--oo-card);
+      border: 1px solid var(--oo-hair);
+      border-radius: .75rem;
+      box-shadow: var(--oo-shadow);
+    }
+    .oo-workspace-shell {
+      background: var(--oo-card);
+    }
+    .oo-logo-wrap {
+      width: 11.75rem;
+      max-width: 100%;
+      overflow: hidden;
+    }
+    .oo-logo-image {
+      display: block;
+      width: 100%;
+      height: auto;
+    }
+    @media (min-width: 1024px) {
+      .oo-workspace-shell {
+        min-height: calc(100vh - 2rem);
+        margin-top: 1rem;
+        margin-right: 1rem;
+        border: 1px solid var(--oo-hair);
+        border-right-color: #EFEFF0;
+        border-bottom-color: #EFEFF0;
+        border-top-left-radius: 1rem;
+        border-top-right-radius: 1rem;
+        box-shadow: 0 1px 2px rgba(9, 9, 11, .035), 0 18px 42px rgba(9, 9, 11, .045);
+      }
+    }
+    .oo-interactive {
+      transition: transform .18s ease, box-shadow .18s ease, border-color .18s ease, background-color .18s ease, color .18s ease;
+    }
+    .oo-interactive:hover {
+      transform: translateY(-1px);
+      box-shadow: var(--oo-shadow-hover);
+      border-color: #D4D4D8;
+    }
+    .oo-button {
+      display: inline-flex;
+      align-items: center;
+      justify-content: center;
+      gap: .5rem;
+      border-radius: .5rem;
+      font-size: .875rem;
+      font-weight: 500;
+      min-height: 2.5rem;
+      padding: .55rem 1rem;
+      transition: transform .16s ease, box-shadow .16s ease, background-color .16s ease, border-color .16s ease, color .16s ease;
+    }
+    .oo-button:hover { transform: translateY(-1px); }
+    .oo-button:active { transform: translateY(0); }
+    .oo-button-primary { background: var(--oo-ink); color: #fff; box-shadow: 0 1px 2px rgba(9, 9, 11, .12); }
+    .oo-button-primary:hover { background: #18181B; box-shadow: 0 10px 20px rgba(9, 9, 11, .12); }
+    .oo-button-secondary { background: var(--oo-card); border: 1px solid var(--oo-hair); color: var(--oo-ink); }
+    .oo-button-secondary:hover { background: var(--oo-hover); border-color: #D4D4D8; }
+    .oo-chip {
+      display: inline-flex;
+      align-items: center;
+      gap: .375rem;
+      border: 1px solid var(--oo-hair);
+      border-radius: 999px;
+      background: var(--oo-card);
+      color: var(--oo-ink);
+      font-size: .75rem;
+      font-weight: 500;
+      padding: .25rem .625rem;
+    }
+    .oo-sidebar-link {
+      position: relative;
+      transition: background-color .16s ease, color .16s ease, transform .16s ease;
+    }
+    .oo-sidebar-link:not([aria-current="page"]):hover { transform: translateX(2px); background: var(--oo-hover); }
+    .oo-sidebar-link[aria-current="page"]::before {
+      content: "";
+      position: absolute;
+      left: -.45rem;
+      top: .65rem;
+      bottom: .65rem;
+      width: 3px;
+      border-radius: 999px;
+      background: currentColor;
+    }
+    .oo-table-row { transition: background-color .14s ease, box-shadow .14s ease; }
+    .oo-table-row:hover { background: var(--oo-hover); box-shadow: inset 3px 0 0 var(--oo-ink); }
+    .oo-table-row:has(.oo-row-check:checked) { background: #F4F4F5; box-shadow: inset 3px 0 0 var(--oo-ink); }
+    .oo-page-enter { animation: ooPageEnter .22s ease-out both; }
+    .oo-modal-panel { animation: ooDrawerIn .18s ease-out both; }
+    .htmx-request { opacity: .72; transition: opacity .18s ease; }
+    @keyframes ooPageEnter {
+      from { opacity: 0; transform: translateY(6px); }
+      to { opacity: 1; transform: translateY(0); }
+    }
+    @keyframes ooDrawerIn {
+      from { opacity: 0; transform: translateX(16px); }
+      to { opacity: 1; transform: translateX(0); }
+    }
+    @media (prefers-reduced-motion: reduce) {
+      *, *::before, *::after {
+        animation-duration: .01ms !important;
+        animation-iteration-count: 1 !important;
+        scroll-behavior: auto !important;
+        transition-duration: .01ms !important;
+      }
+      .oo-interactive:hover, .oo-button:hover, .oo-sidebar-link:hover { transform: none; }
+    }
+    @media (min-width: 1024px) {
+      body.oo-sidebar-collapsed .oo-sidebar { width: 4.75rem; padding-left: .75rem; padding-right: .75rem; }
+      body.oo-sidebar-collapsed .oo-sidebar-label,
+      body.oo-sidebar-collapsed .oo-sidebar-subtitle,
+      body.oo-sidebar-collapsed .oo-sidebar-footer { display: none; }
+      body.oo-sidebar-collapsed .oo-sidebar-brand,
+      body.oo-sidebar-collapsed .oo-sidebar-link { justify-content: center; }
+      body.oo-sidebar-collapsed .oo-sidebar-link { padding-left: .75rem; padding-right: .75rem; }
+      body.oo-sidebar-collapsed .oo-logo-wrap {
+        width: 2.25rem;
+        height: 2.25rem;
+        border-radius: .5rem;
+      }
+      body.oo-sidebar-collapsed .oo-logo-image {
+        width: 11.75rem;
+        max-width: none;
+      }
+    }
+    form input[type=text], form input[type=url], form input[type=password],
+    form input[type=number], form input[type=email], form input:not([type]),
+    form textarea, form select {
+      width: 100%; border: 1px solid #E4E4E7; border-radius: .5rem;
+      padding: .6rem .8rem; font-size: .875rem; background: #fff; color: #09090B;
+    }
+    form select[multiple] { min-height: 8rem; }
+    form input:focus, form textarea:focus, form select:focus {
+      outline: none; border-color: #09090B; box-shadow: 0 0 0 3px rgba(9,9,11,.08);
+    }
+    form input.oo-title-input {
+      width: 100%;
+      border: 0;
+      border-radius: 0;
+      background: transparent;
+      padding: 0;
+      font-family: Poppins, system-ui, sans-serif;
+      font-size: 1.5rem;
+      line-height: 2rem;
+      font-weight: 600;
+      color: var(--oo-ink);
+    }
+    form input.oo-title-input:focus {
+      outline: none;
+      box-shadow: none;
+      border-color: transparent;
+    }
+  </style>
+</head>
+<body class="bg-paper text-ink antialiased">
+<div id="oo-app"
+     class="min-h-screen lg:flex"
+     hx-boost="true"
+     hx-target="#oo-app"
+     hx-select="#oo-app"
+     hx-swap="outerHTML transition:true"
+     hx-push-url="true">
+  <aside class="oo-sidebar w-full lg:w-64 shrink-0 border-b lg:border-b-0 border-hair bg-paper px-4 sm:px-6 py-5 lg:py-7 lg:flex lg:flex-col lg:sticky lg:top-0 lg:h-screen transition-all duration-200">
+    <div class="mb-5 lg:mb-10">
+      <div class="oo-sidebar-brand flex items-center gap-3">
+        <div class="oo-logo-wrap" title="Exop AI">
+          <img src="{% static 'dashboard/img/exop-ai-logo.png' %}" alt="Exop AI" class="oo-logo-image">
+        </div>
+      </div>
+    </div>
+    <nav class="flex gap-1 overflow-x-auto lg:block lg:overflow-visible lg:space-y-1 text-sm oo-scrollbar">
+      <a title="Overview" href="{% url 'dashboard:overview' %}" {% if active == 'overview' %}aria-current="page"{% endif %} class="oo-sidebar-link flex items-center gap-3 rounded-lg px-3 py-2.5 {% if active == 'overview' %}bg-ink text-white{% else %}text-ink/80{% endif %}">
+        <i data-lucide="layout-dashboard" class="oo-icon"></i><span class="oo-sidebar-label">Overview</span>
+      </a>
+      <a title="Campaigns" href="{% url 'dashboard:campaigns' %}" {% if active == 'campaigns' %}aria-current="page"{% endif %} class="oo-sidebar-link flex items-center gap-3 rounded-lg px-3 py-2.5 {% if active == 'campaigns' %}bg-ink text-white{% else %}text-ink/80{% endif %}">
+        <i data-lucide="megaphone" class="oo-icon"></i><span class="oo-sidebar-label">Campaigns</span>
+      </a>
+      <a title="Leads" href="{% url 'dashboard:leads' %}" {% if active == 'leads' %}aria-current="page"{% endif %} class="oo-sidebar-link flex items-center gap-3 rounded-lg px-3 py-2.5 {% if active == 'leads' %}bg-ink text-white{% else %}text-ink/80{% endif %}">
+        <i data-lucide="users" class="oo-icon"></i><span class="oo-sidebar-label">Leads</span>
+      </a>
+      <a title="Conversations" href="{% url 'dashboard:conversations' %}" {% if active == 'conversations' %}aria-current="page"{% endif %} class="oo-sidebar-link flex items-center gap-3 rounded-lg px-3 py-2.5 {% if active == 'conversations' %}bg-ink text-white{% else %}text-ink/80{% endif %}">
+        <i data-lucide="messages-square" class="oo-icon"></i><span class="oo-sidebar-label">Conversations</span>
+      </a>
+      <a title="Monitor" href="{% url 'dashboard:monitor' %}" {% if active == 'monitor' %}aria-current="page"{% endif %} class="oo-sidebar-link flex items-center gap-3 rounded-lg px-3 py-2.5 {% if active == 'monitor' %}bg-ink text-white{% else %}text-ink/80{% endif %}">
+        <i data-lucide="activity" class="oo-icon"></i><span class="oo-sidebar-label">Monitor</span>
+      </a>
+      <a title="LinkedIn Account" href="{% url 'dashboard:linkedin_account' %}" {% if active == 'linkedin_account' %}aria-current="page"{% endif %} class="oo-sidebar-link flex items-center gap-3 rounded-lg px-3 py-2.5 {% if active == 'linkedin_account' %}bg-ink text-white{% else %}text-ink/80{% endif %}">
+        <i data-lucide="link-2" class="oo-icon"></i><span class="oo-sidebar-label">LinkedIn Account</span>
+      </a>
+    </nav>
+    <div class="oo-sidebar-footer hidden lg:block mt-auto pt-8 text-xs text-muted space-y-2">
+      <a href="/admin/" hx-boost="false" class="flex items-center gap-2 hover:text-ink"><i data-lucide="shield" class="oo-icon"></i><span>Admin</span></a>
+      <a href="/admin/logout/" hx-boost="false" class="flex items-center gap-2 hover:text-ink"><i data-lucide="log-out" class="oo-icon"></i><span>Sign out</span></a>
+    </div>
+  </aside>
+
+  <main class="oo-workspace-shell flex-1 min-w-0 px-4 sm:px-6 lg:px-10 pb-8 oo-page-enter">
+    {% if breadcrumbs %}
+      <header class="sticky top-0 z-30 -mx-4 sm:-mx-6 lg:-mx-10 mb-8 border-b border-hair bg-card/95 px-4 sm:px-6 lg:px-10 py-4 backdrop-blur supports-[backdrop-filter]:bg-card/85 lg:rounded-t-2xl">
+        <div class="flex min-w-0 items-center gap-3">
+          <button type="button" onclick="ooToggleSidebar()" title="Toggle sidebar"
+                  class="hidden lg:inline-flex h-8 w-8 shrink-0 items-center justify-center rounded-lg border border-hair bg-card text-muted hover:text-ink hover:bg-zinc-50 transition oo-interactive">
+            <i data-lucide="panel-left-close" class="oo-icon oo-collapse-icon"></i>
+          </button>
+          <div class="hidden h-5 w-px bg-hair lg:block"></div>
+          {% if breadcrumbs %}
+            <nav aria-label="Breadcrumb" class="min-w-0">
+              <ol class="flex flex-wrap items-center gap-1.5 text-sm text-muted">
+                {% for crumb in breadcrumbs %}
+                  <li class="flex min-w-0 items-center gap-1.5">
+                    {% if crumb.url and not forloop.last %}
+                      <a href="{{ crumb.url }}" class="truncate transition hover:text-ink">{{ crumb.label }}</a>
+                    {% else %}
+                      <span class="truncate {% if forloop.last %}text-ink font-medium{% endif %}">{{ crumb.label }}</span>
+                    {% endif %}
+                    {% if not forloop.last %}<i data-lucide="chevron-right" class="oo-icon shrink-0 text-muted"></i>{% endif %}
+                  </li>
+                {% endfor %}
+              </ol>
+            </nav>
+          {% endif %}
+        </div>
+      </header>
+    {% endif %}
+    {% if page_title or page_description %}
+      <section class="mb-8 flex items-start justify-between gap-4">
+        <div class="min-w-0">
+          {% if page_title %}
+            <h1 class="ff-serif truncate text-2xl font-semibold">{{ page_title }}</h1>
+          {% endif %}
+          {% if page_description %}
+            <p class="mt-1 max-w-3xl text-sm text-muted">{{ page_description }}</p>
+          {% endif %}
+        </div>
+        <div class="shrink-0">
+          {% block workspace_actions %}{% endblock %}
+        </div>
+      </section>
+    {% endif %}
+    {% if messages %}
+      <div class="mb-6 space-y-2">
+        {% for m in messages %}
+          <div class="rounded-lg border px-4 py-3 text-sm shadow-sm {% if m.tags == 'error' %}border-red-200 bg-red-50 text-red-800{% else %}border-hair bg-card text-ink{% endif %}">{{ m }}</div>
+        {% endfor %}
+      </div>
+    {% endif %}
+    {% block content %}{% endblock %}
+  </main>
+  <div id="oo-page-scripts">
+    {% block scripts %}{% endblock %}
+  </div>
+</div>
+
+<div id="oo-modal" class="hidden fixed inset-0 z-50 bg-black/25 justify-end"
+     onclick="if(event.target===this)this.classList.add('hidden')">
+  <div id="oo-modal-body" class="oo-modal-panel h-full w-full max-w-xl overflow-y-auto border-l border-hair bg-card p-0 shadow-2xl oo-scrollbar"></div>
+</div>
+<script>
+  function ooRefreshIcons() { if (window.lucide) window.lucide.createIcons(); }
+  function ooApplySidebarState() {
+    const collapsed = localStorage.getItem('oo-sidebar-collapsed') === 'true';
+    document.body.classList.toggle('oo-sidebar-collapsed', collapsed);
+    const icon = document.querySelector('.oo-collapse-icon');
+    if (icon) icon.setAttribute('data-lucide', collapsed ? 'panel-left-open' : 'panel-left-close');
+    ooRefreshIcons();
+  }
+  function ooToggleSidebar() {
+    const next = !document.body.classList.contains('oo-sidebar-collapsed');
+    localStorage.setItem('oo-sidebar-collapsed', next ? 'true' : 'false');
+    ooApplySidebarState();
+  }
+  document.addEventListener('DOMContentLoaded', ooApplySidebarState);
+  document.body.addEventListener('htmx:afterSwap', function (event) {
+    if (event.detail && event.detail.target && event.detail.target.id === 'oo-app') {
+      ooApplySidebarState();
+      window.scrollTo(0, 0);
+    } else {
+      ooRefreshIcons();
+    }
+  });
+  document.addEventListener('keydown', function (e) {
+    if (e.key === 'Escape') document.getElementById('oo-modal').classList.add('hidden');
+  });
+  function ooOpenModal() {
+    const modal = document.getElementById('oo-modal');
+    modal.classList.remove('hidden');
+    modal.classList.add('flex');
+  }
+  function ooCloseModal() { document.getElementById('oo-modal').classList.add('hidden'); }
+  function ooOpenDeal(url) {
+    const body = document.getElementById('oo-modal-body');
+    body.innerHTML = '<div class="p-6"><div class="h-4 w-32 animate-pulse rounded bg-zinc-200"></div><div class="mt-4 h-24 animate-pulse rounded-lg bg-zinc-100"></div></div>';
+    ooOpenModal();
+    fetch(url, { headers: { 'HX-Request': 'true' }, credentials: 'same-origin' })
+      .then(function (response) {
+        if (!response.ok) throw new Error('Could not load lead details.');
+        return response.text();
+      })
+      .then(function (html) {
+        body.innerHTML = html;
+        ooRefreshIcons();
+      })
+      .catch(function () {
+        body.innerHTML = '<div class="p-6"><div class="text-sm font-medium text-ink">Could not load lead details.</div><p class="mt-1 text-sm text-muted">Please close this drawer and try again.</p></div>';
+      });
+  }
+</script>
+</body>
+</html>

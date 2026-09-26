@@ -1,0 +1,168 @@
+{% extends "dashboard/base.html" %}
+{% block title %}LinkedIn Account · LinkedFlow{% endblock %}
+{% block content %}
+<div class="grid gap-6 xl:grid-cols-[minmax(0,1.15fr)_minmax(320px,.85fr)]">
+  <section class="oo-surface p-6 sm:p-8">
+    <div id="linkedin-status" {% if profile %}hx-get="{% url 'dashboard:linkedin_account_status' %}" hx-trigger="every 5s" hx-target="this" hx-select="unset" hx-swap="innerHTML" hx-push-url="false"{% endif %}>
+      {% include "dashboard/_linkedin_status.html" %}
+    </div>
+
+    <form class="mt-8 space-y-5 border-t border-hair pt-6" method="post" action="{% url 'dashboard:linkedin_account_save' %}">
+      {% csrf_token %}
+      <div>
+        <label class="mb-1.5 block text-sm font-medium">{{ form.linkedin_username.label }}</label>
+        {{ form.linkedin_username }}
+        {% for e in form.linkedin_username.errors %}<p class="mt-1 text-xs text-red-600">{{ e }}</p>{% endfor %}
+      </div>
+      <div>
+        <label class="mb-1.5 block text-sm font-medium">{{ form.linkedin_password.label }}</label>
+        {{ form.linkedin_password }}
+        <p class="mt-1 text-xs text-muted">Your password is never displayed. Leave blank only when your current session is still valid.</p>
+      </div>
+      <div class="grid gap-4 sm:grid-cols-2">
+        <div>
+          <label class="mb-1.5 block text-sm font-medium">{{ form.connect_daily_limit.label }}</label>
+          {{ form.connect_daily_limit }}
+        </div>
+        <div>
+          <label class="mb-1.5 block text-sm font-medium">{{ form.follow_up_daily_limit.label }}</label>
+          {{ form.follow_up_daily_limit }}
+        </div>
+      </div>
+      <label class="flex items-start gap-3 text-sm">
+        {{ form.legal_accepted }}
+        <span>{{ form.legal_accepted.label }}</span>
+      </label>
+      <button class="oo-button oo-button-primary w-full sm:w-auto">{% if profile %}Save account{% else %}Connect account{% endif %}</button>
+    </form>
+  </section>
+
+  <div class="space-y-6">
+    <section class="oo-surface p-6">
+      <div class="flex items-center justify-between">
+        <h2 class="font-semibold">AI API settings</h2>
+        <i data-lucide="key-round" class="oo-icon text-muted"></i>
+      </div>
+      <p class="mt-2 text-sm text-muted">Used by the bot for lead qualification and message writing. Choose the framework, then add the model and key.</p>
+
+      <form class="mt-5 space-y-4" method="post" action="{% url 'dashboard:linkedin_api_save' %}">
+        {% csrf_token %}
+        <div>
+          <label class="mb-1.5 block text-sm font-medium">{{ api_form.llm_provider.label }}</label>
+          {{ api_form.llm_provider }}
+          <p id="ai-provider-help" class="mt-1 text-xs text-muted">OpenAI uses the native backend integration.</p>
+        </div>
+        <div>
+          <label class="mb-1.5 block text-sm font-medium">{{ api_form.model_name.label }}</label>
+          {{ api_form.model_name }}
+          <p class="mt-1 text-xs text-muted">{{ api_form.model_name.help_text }}</p>
+        </div>
+        <div>
+          <label class="mb-1.5 block text-sm font-medium">{{ api_form.llm_api_key.label }}</label>
+          {{ api_form.llm_api_key }}
+          <p class="mt-1 text-xs text-muted">
+            {% if api_key_saved %}A key is saved. Leave blank to keep it.{% else %}No API key is saved yet.{% endif %}
+          </p>
+        </div>
+        <div id="api-base-field">
+          <label class="mb-1.5 block text-sm font-medium">{{ api_form.llm_api_base.label }}</label>
+          {{ api_form.llm_api_base }}
+          <p class="mt-1 text-xs text-muted">{{ api_form.llm_api_base.help_text }}</p>
+        </div>
+        <button class="oo-button oo-button-primary w-full">
+          <i data-lucide="save" class="oo-icon"></i>
+          Save API settings
+        </button>
+      </form>
+    </section>
+
+    <section class="oo-surface p-6">
+      <div class="flex items-center justify-between">
+        <h2 class="font-semibold">Safety and limits</h2>
+        <i data-lucide="shield-check" class="oo-icon text-muted"></i>
+      </div>
+      <div class="mt-5 space-y-4 text-sm">
+        <div class="flex justify-between"><span class="text-muted">Connection requests today</span><span class="font-medium">{{ connect_used }} / {% if profile %}{{ profile.connect_daily_limit }}{% else %}20{% endif %}</span></div>
+        <div class="flex justify-between"><span class="text-muted">Follow-ups today</span><span class="font-medium">{{ follow_used }} / {% if profile %}{{ profile.follow_up_daily_limit }}{% else %}25{% endif %}</span></div>
+        <div class="flex justify-between"><span class="text-muted">Automation</span><span class="font-medium">{% if profile and profile.active %}Active{% else %}Paused{% endif %}</span></div>
+      </div>
+    </section>
+
+    <section class="oo-surface p-6">
+      <h2 class="font-semibold">Campaigns</h2>
+      <div class="mt-4 space-y-3">
+        {% for campaign in campaigns %}
+          <div class="flex items-center justify-between text-sm"><span>{{ campaign.name }}</span><span class="text-xs text-muted">Ready to run</span></div>
+        {% empty %}
+          <p class="text-sm text-muted">No campaigns are attached to this account yet.</p>
+        {% endfor %}
+      </div>
+    </section>
+  </div>
+</div>
+
+<section class="oo-surface mt-6 overflow-hidden">
+  <div class="border-b border-hair px-6 py-5">
+    <h2 class="font-semibold">Recent account activity</h2>
+    <p class="mt-1 text-sm text-muted">Actions recorded in the last 24 hours.</p>
+  </div>
+  {% for activity in activities %}
+    <div class="flex items-center justify-between border-b border-hair px-6 py-4 text-sm last:border-0">
+      <span>{{ activity.get_action_type_display }} <span class="text-muted">· {{ activity.campaign.name }}</span></span>
+      <time class="text-xs text-muted">{{ activity.created_at|date:"M j, g:i A" }}</time>
+    </div>
+  {% empty %}
+    <p class="px-6 py-6 text-sm text-muted">No LinkedIn actions recorded today.</p>
+  {% endfor %}
+</section>
+<script>
+  document.addEventListener("DOMContentLoaded", function () {
+    const provider = document.getElementById("id_llm_provider");
+    const model = document.getElementById("id_model_name");
+    const base = document.getElementById("id_llm_api_base");
+    const baseField = document.getElementById("api-base-field");
+    const help = document.getElementById("ai-provider-help");
+    if (!provider || !model || !base || !baseField || !help) return;
+
+    const presets = {
+      openai: {
+        model: "gpt-4o-mini",
+        base: "",
+        help: "OpenAI uses the native backend integration."
+      },
+      anthropic: {
+        model: "claude-sonnet-4-5-20250929",
+        base: "",
+        help: "Claude uses the Anthropic backend integration."
+      },
+      grok: {
+        model: "grok-4.6",
+        base: "https://api.x.ai/v1",
+        help: "Grok uses xAI through the OpenAI-compatible API format."
+      },
+      custom: {
+        model: "MiniMax-M3",
+        base: "https://api.minimax.io/v1",
+        help: "MiniMax and similar providers use the OpenAI-compatible format with their own base URL."
+      }
+    };
+
+    function syncProvider(shouldFill) {
+      const preset = presets[provider.value] || presets.openai;
+      if (shouldFill) {
+        model.value = preset.model;
+        base.value = preset.base;
+      }
+      help.textContent = preset.help;
+      if (provider.value === "grok" && !base.value) base.value = preset.base;
+      if (provider.value === "custom" && !base.value) base.value = preset.base;
+      if (provider.value !== "grok" && provider.value !== "custom") base.value = "";
+    }
+
+    provider.addEventListener("change", function () {
+      syncProvider(true);
+    });
+    syncProvider(false);
+  });
+</script>
+{% endblock %}

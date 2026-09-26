@@ -1,0 +1,34 @@
+{% extends "dashboard/base.html" %}
+{% block title %}Monitor · LinkedFlow{% endblock %}
+{% block workspace_actions %}
+  <span class="text-[11px] text-muted uppercase tracking-[0.15em] flex items-center gap-2">
+    <span class="inline-block w-2 h-2 rounded-full bg-ink animate-pulse"></span> Auto-refreshing
+  </span>
+{% endblock %}
+{% block content %}
+<div class="mb-8" hx-get="{% url 'dashboard:monitor_status' %}" hx-trigger="every 5s" hx-target="this" hx-select="unset" hx-swap="innerHTML" hx-push-url="false">
+  {% include "dashboard/_status.html" %}
+</div>
+
+<div class="grid grid-cols-1 xl:grid-cols-3 gap-6">
+  <section class="xl:col-span-2 oo-surface p-6 min-h-[28rem]">
+    <div class="flex items-center justify-between mb-5">
+      <h2 class="ff-serif text-xl">Activity</h2>
+      <span class="inline-flex items-center gap-2 text-xs text-muted"><i data-lucide="radio" class="oo-icon"></i>Latest events</span>
+    </div>
+    <div hx-get="{% url 'dashboard:monitor_feed' %}" hx-trigger="every 5s" hx-target="this" hx-select="unset" hx-swap="innerHTML" hx-push-url="false">
+      {% include "dashboard/_feed.html" %}
+    </div>
+  </section>
+
+  <section class="oo-surface p-6 h-fit">
+    <div class="flex items-center justify-between mb-4">
+      <h2 class="ff-serif text-xl">Raw log</h2>
+      <i data-lucide="terminal" class="oo-icon text-muted"></i>
+    </div>
+    <div hx-get="{% url 'dashboard:monitor_log' %}" hx-trigger="load, every 10s" hx-target="this" hx-select="unset" hx-swap="innerHTML" hx-push-url="false">
+      <div class="text-sm text-muted">Loading…</div>
+    </div>
+  </section>
+</div>
+{% endblock %}

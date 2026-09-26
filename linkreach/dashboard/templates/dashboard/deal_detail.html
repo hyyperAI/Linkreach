@@ -1,0 +1,7 @@
+{% extends "dashboard/base.html" %}
+{% block title %}{{ name|default:deal.lead.public_identifier }} · LinkedFlow{% endblock %}
+{% block content %}
+<section class="mx-auto max-w-3xl overflow-hidden rounded-lg border border-hair bg-white">
+  {% include "dashboard/_deal_modal.html" %}
+</section>
+{% endblock %}

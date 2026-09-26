@@ -1,0 +1,27 @@
+__pycache__/
+.idea/
+.venv/
+.pytest_cache/
+.vscode
+.dockerignore
+.env
+
+/linkedin_state.json
+/.coverage
+/venv/
+/linkedin/management/commands/export_model.py
+/data/*
+!/data/.gitkeep
+/media/
+.cache/
+tests/fixtures/pages/**/*.html
+
+# runtime artefacts (hygiene)
+logs/
+.browsers/
+
+# vendored dependency (hygiene — installed from PyPI, not edited in-tree)
+vendor/
+
+# delivery notes (local only — not part of the public repo)
+docs/Delivery/

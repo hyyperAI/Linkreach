@@ -1,0 +1,34 @@
+<div class="space-y-3">
+  {% for item in feed %}
+    {% if item.kind == "message" %}
+      <div class="flex {% if item.outgoing %}justify-end{% else %}justify-start{% endif %}">
+        <div class="max-w-[72%]">
+          <div class="text-[11px] text-muted mb-1 {% if item.outgoing %}text-right{% endif %}">
+            {% if item.outgoing %}You → {{ item.who }}{% else %}{{ item.who }}{% endif %}
+            · {{ item.when|date:"M d, H:i" }}
+          </div>
+          <div class="rounded-lg px-4 py-2.5 text-sm {% if item.outgoing %}bg-ink text-white{% else %}bg-paper border border-hair{% endif %}">
+            {{ item.text|default:"(empty message)"|linebreaksbr }}
+          </div>
+        </div>
+      </div>
+    {% else %}
+      <div class="flex justify-center">
+        <div class="rounded-md border border-hair bg-paper px-3 py-1.5 text-xs text-muted">
+          {{ item.text }}
+          {% if item.who %}<span class="text-ink">· {{ item.who }}</span>{% endif %}
+          <span>· {{ item.when|date:"M d, H:i" }}</span>
+        </div>
+      </div>
+    {% endif %}
+  {% empty %}
+    <div class="grid place-items-center text-center text-muted text-sm py-24">
+      <div>
+        <div class="mx-auto mb-3 grid h-10 w-10 place-items-center rounded-lg border border-hair bg-paper">
+          <i data-lucide="radio" class="oo-icon"></i>
+        </div>
+        No activity yet. Start the bot to see it work here.
+      </div>
+    </div>
+  {% endfor %}
+</div>
