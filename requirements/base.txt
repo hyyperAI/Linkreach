@@ -19,6 +19,8 @@ huggingface_hub
 questionary
 pytz
 tenacity
-# The public package/repository for 0.1.9 is currently unavailable. Keep the
-# audited release source local so clean Windows installs remain reproducible.
-./vendor/linkedin-agent-cli
+# LinkedIn browser mechanics library — installed from PyPI as `linkedin-agent-cli`
+# (import name `linkedin_cli`). Pinned to the latest 0.1.x release that's been
+# audited against the local checkout in vendor/ (kept for offline audit only,
+# gitignored).
+linkedin-agent-cli>=0.1.9,<0.2
