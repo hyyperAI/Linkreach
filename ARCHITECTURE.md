@@ -1,6 +1,6 @@
 # Architecture
 
-Detailed module documentation for Link-reach. See `CLAUDE.md` for rules and quick reference.
+Detailed module documentation for Link-reach. See `docs-internal/CLAUDE.md` for project rules, conventions, and a quick reference (this doc shipped to clients — `CLAUDE.md` is operator-only).
 
 ## Project Layout
 

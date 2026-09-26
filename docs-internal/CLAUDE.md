@@ -48,3 +48,21 @@ For detailed module docs, see `ARCHITECTURE.md`.
 - **Data dir**: `data/` holds persistent state (`db.sqlite3`). Docker users mount volumes at `/app/data`.
 - **Docker**: Playwright base image, VNC on port 5900, `BUILD_ENV` arg selects requirements.
 - **CI/CD**: `.github/workflows/tests.yml` (pytest), `deploy.yml` (build + push to ghcr.io).
+
+## Project state — operator memory
+
+Persistent facts that don't fit the rules above but any future me should know on session-start. Update when something here becomes stale.
+
+- **Repo identity (as of 2026-09-26 rebrand):** the public repo is `hyyperAI/Linkreach` on GitHub. The user-facing product name inside the app is **`LinkedFlow`**, the repo / package name is **`linkreach`**. This is *deliberate*, not drift — see `docs-internal/project-guide/04-frontend-and-ui/05-branding-and-tone.md`. The split exists because the code is distributed under a different label than what the operator sees in the browser. If anyone flags "the dashboard says LinkedFlow but the repo is linkreach", point them at that doc; do not "fix" the strings.
+- **History shape:** `main` was force-pushed from an orphan root on 2026-09-26 (single `brand: …` commit as the start of `main`). The pre-rebrand OpenOutreach chain is preserved locally as branch `main-old` (816 commits). Delete `main-old` only when no client of the rebrand needs recovery; not before.
+- **Folder layout — root must stay clean.** Operator-only files do **not** belong at the repo root. Convention:
+  - `docs/` = client-shippable documentation only (DASHBOARD_PLAN, docker.md, configuration.md, testing.md, etc.).
+  - `docs-internal/` = operator-only — CLAUDE.md, ARCHITECTURE.md (operator side), `docs-internal/project-guide/` (the 70+ file Product_info handbook), `docs-internal/starting-the-bot/`, `docs-internal/linkedin-profile-ui-plan/`, debug notes.
+  - Adding new operator-only material? Drop it under `docs-internal/`. Adding client-shippable docs? `docs/`. Never root unless runtime-required (Makefile, manage.py, requirements, etc.).
+- **`ARCHITECTURE.md` lives at the repo root** (ships to clients) — keep its client-facing wording; for operator nuance use `docs-internal/CLAUDE.md` (the file you're reading) instead. The single line at `ARCHITECTURE.md:3` is the bridge that tells readers where the operator-only context moved.
+- **Cross-refs from the moved trees** (renamed in commit `da55132`): anywhere inside `docs-internal/` that previously said `docs/...` now uses `../...` for siblings. Don't re-introduce `docs/...` paths inside `docs-internal/` — those moved.
+- **Public-facing brand strings (verified containing `LinkedFlow` / `exop-ai` as of rebrand date; check before assuming still accurate):** `templates/admin/login.html`, `linkreach/dashboard/templates/dashboard/_linkedin_status.html`, every `{% block title %}` in `linkreach/dashboard/templates/dashboard/*.html` (overview, monitor, linkedin_account, leads, deal_detail), `linkreach/dashboard/views.py:173`. **Do not "fix" these to say `linkreach`** — see the first bullet.
+- **Hygiene — what's gitignored and not for the client to know about:** `.venv/`, `.cache/`, `logs/`, `.browsers/`, `data/*` (except `.gitkeep`), `media/`, `vendor/`, `docs/Delivery/` (operator handoff notes — private by design), `tests/fixtures/pages/**/*.html`. `.gitignore` is the source of truth for this list.
+- **Releasing to a client = clone main, run `make setup`, `make admin` reachable at `:8000/admin`, dashboard at `:8000/dashboard`.** That's it. No separate `release/client` branch, no stripping pass, no PR — `docs-internal/` separation is the gate, and it ships.
+- **What `make setup` expects locally:** Python 3.12+, `.venv/` at `<project>/.venv/`, `requirements/local.txt` (or `production.txt` for Docker builds). Playwright browsers via `python -m playwright install chromium`. Trust `.venv/bin/python`, not system `python3`.
+
