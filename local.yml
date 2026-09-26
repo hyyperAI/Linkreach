@@ -17,4 +17,5 @@ services:
     volumes:
       - .:/app
     ports:
-      - "6080:6080"
+      - "6080:6080"   # noVNC web viewer (browser automation live view)
+      - "8000:8000"   # Django dashboard + admin (http://localhost:8000/dashboard/ and /admin/)

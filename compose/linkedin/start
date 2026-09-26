@@ -17,6 +17,12 @@ if [ "${ENABLE_VNC:-false}" = "true" ]; then
     websockify --web /opt/noVNC 6080 localhost:5900 &
 fi
 
+# Optional: also serve the dashboard at :8000 in this container.
+# Default on for self-host operators, opt-out with ENABLE_DASHBOARD=false.
+if [ "${ENABLE_DASHBOARD:-true}" = "true" ]; then
+    python manage.py runserver 0.0.0.0:8000 --noreload &
+fi
+
 # Run the daemon (migrate + onboard + task queue).
 # Forward any arguments, e.g. --onboard <file>.
 exec python manage.py rundaemon "$@"
