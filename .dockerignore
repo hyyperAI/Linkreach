@@ -5,3 +5,17 @@
 .idea
 __pycache__
 .vscode
+
+# runtime artefacts (don't bake into image)
+.cache/
+logs/
+.browsers/
+data/
+
+# operator-only (not for client builds)
+docs-internal/
+.claude/
+docs/Delivery/
+
+# vendored dependency (already gitignored, but also skip on docker context)
+vendor/
